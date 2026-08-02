@@ -14,6 +14,7 @@ Runnable VITTLOCK Lua scripts — drop them into `C:\VITTLOCK\Scripts\<SubDir>\`
 | 08 | `08-input-key-tracker.lua` | `callbacks.on_key_pressed/released` worldwide |
 | 09 | `09-bullet-tracker.lua` | `callbacks.on_bullet_create` rich payload + on-screen feed |
 | 10 | `10-full-template.lua` | Comprehensive template covering every subsystem — copy as your starting point |
+| 11 | `11-psilent-fov-override.lua` | Native `CAimbot` setting control through `aimbot.get/set` |
 
 ## How to load these
 
@@ -24,7 +25,8 @@ C:\VITTLOCK\Scripts\Examples\
     ├── 01-minimal.lua
     ├── 02-toggle-keypress.lua
     ├── ...
-    └── 10-full-template.lua
+    ├── 10-full-template.lua
+    └── 11-psilent-fov-override.lua
 ```
 
 …each will land under the `Examples` category tab in the **Lua Scripts** menu.

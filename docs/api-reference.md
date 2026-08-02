@@ -399,6 +399,26 @@ callback.on_draw:set(...) -- alias of on_render
 
 ---
 
+### `aimbot` — native settings
+
+Native `CAimbot` menu controls are not stored in `CLuaMenuRuntime`, so `Menu.Find` cannot resolve them. Use stable keys through this module. See [aimbot-settings.md](aimbot-settings.md) for the complete key/range table.
+
+| Function | Returns | Description |
+|---|---|---|
+| `aimbot.get(name)` | any or nil | Read native setting by stable key |
+| `aimbot.set(name, value)` | boolean | Write native setting; validates type and clamps numeric ranges |
+| `aimbot.keys()` | string[] | List supported keys |
+| `aimbot.get_psilent_fov()` | number | Read native pSilent FOV |
+| `aimbot.set_psilent_fov(value)` | boolean | Write pSilent FOV, clamped `10..500` |
+
+```lua
+aimbot.set("psilent_active", true)
+aimbot.set("psilent_fov", 170)
+print(aimbot.get("psilent_fov"))
+```
+
+---
+
 ### `Engine` — game state
 
 Read-only accessors to the live game world.

@@ -39,6 +39,7 @@ Reload it from the in-game menu (**Lua Scripts** tab → right-click → **Reloa
 | Build a per-script menu UI | `ui`, `UI`, `Menu` | [docs/widgets-menu.md](docs/widgets-menu.md) |
 | React to game events (tick, render, spawn, key, modifier, bullet, particle, entity) | `callbacks` | [docs/callbacks-events.md](docs/callbacks-events.md) |
 | Read local player + any entity state | `Engine`, `entity_list` | [docs/engine-accessors.md](docs/engine-accessors.md), [docs/entity-wrappers.md](docs/entity-wrappers.md) |
+| Read/write native aimbot settings | `aimbot` | [docs/aimbot-settings.md](docs/aimbot-settings.md) |
 | Mutate the per-tick user command | `CUserCmd`, `InputBitMask_t` | [docs/cusercmd-input.md](docs/cusercmd-input.md) |
 | Draw on screen (HUD, ESP) | `render`, `ImGui` | [docs/render-imgui.md](docs/render-imgui.md) |
 | Ray-cast the world | `Engine.TraceLine` | [docs/trace.md](docs/trace.md) |

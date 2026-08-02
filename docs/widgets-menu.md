@@ -158,6 +158,8 @@ end))
 
 Find across any script and dynamically read/write widget state.
 
+`Menu.Find` only searches widgets registered by Lua through `ui.script()` or `UI.Add*`. Native C++ controls such as pSilent FOV are not in this store; use the [native `aimbot` module](aimbot-settings.md) for those settings.
+
 ### Find & Get/Set
 
 `Menu.Find(label)` is the primary discovery primitive. If only a label is passed, it first tries the current script, then falls back to `FindAny(label)` which scans all scripts. With two args `(script, label)` it scopes exactly.
