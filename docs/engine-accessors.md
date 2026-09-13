@@ -47,10 +47,20 @@ Every `Engine.GetEntity*` accessor masks the incoming handle via a low-bits mask
 | `Engine.GetEntityOrigin(handle)` | Vector3 | World position (`m_pGameSceneNode->m_vecAbsOrigin`) — zero vector on fail |
 | `Engine.GetEntityName(handle)` | string | Designer-name (e.g. `"citadel_player_hero_vindicta"`), `"Entity"` if name missing |
 | `Engine.IsPlayer(handle)` | bool | True if the entity is a `CCitadelPlayerPawn` |
+| `Engine.GetEntityHealth(handle)` | integer | Current entity health (`m_iHealth`) |
+| `Engine.GetEntityMaxHealth(handle)` | integer | Maximum entity health (`m_iMaxHealth`) |
+| `Engine.IsEntityAlive(handle)` | bool | True if `m_lifeState == 0` and `m_iHealth > 0` |
 | `Engine.EntityHasModifierState(handle, state)` | bool | Any modifier on the entity has the given `EModifierState` |
 | `Engine.EntityHasModifier(handle, name)` | bool | Modifier creation time > 0 for the given name string |
+| `Engine.GetEntityModifiers(handle)` | table[] | Array of active modifier objects on the entity |
+| `Engine.GetModifierRemainingTime(handle, name)` | number | Remaining seconds for named modifier, `-1` if absent |
 | `Engine.GetEntityAbility(handle, name)` | table or nil | Find ability whose designer-name contains `name` |
+| `Engine.GetEntityAbilities(handle)` | table[] or nil | Fetch all ability tables for an entity |
+| `Engine.IsAbilityReady(handle, name)` | bool | Check if ability or item is equipped and off cooldown |
+| `Engine.CastAbility(cmd, name)` | bool | Taps the exact button mask for a named ability or item |
+| `Engine.GetProjectiles()` | table[] | Returns array of active projectile entities in the world |
 | `Engine.GetBonePosition(handle, slotName)` | Vector3 | First bone of the named `HitboxSlot` |
+| `Engine.GetProp(handle, [class,] prop)` | any | Read any schema field off an entity dynamically |
 
 ### Bone slots
 
@@ -62,18 +72,26 @@ Every `Engine.GetEntity*` accessor masks the incoming handle via a low-bits mask
 - `"Arms"`
 - `"Legs"`
 
-Anything else falls through to `Head`.
+Anything else falls through to `"Head"`.
 
 ### Ability table
 
-```lua
-local ab = Engine.GetEntityAbility(handle, "citadel_ability_jump")
-if ab then
-    local cd = ab.get_cooldown()   -- 0.0 (no cooldown) or 10.0 (cd) — see caveat below
-end
-```
+Returned by `Engine.GetEntityAbility(handle, name)` or `ent:get_ability(name)`:
 
-⚠️ The `get_cooldown` closure returns either `0.0` or `10.0` based on `m_bIsCoolingDownInternal()`. There is no per-cooldown-seconds resolution — only the binary state. Read `m_flCooldownStart` directly via reflection if you need a real timer.
+| Field / Method | Returns | Description |
+|---|---|---|
+| `ab.get_cooldown()` | number | Binary cooldown (`0.0` ready, `10.0` cooling down) |
+| `ab.get_cooldown_end()` / `ab.m_flCooldownEnd` | number | Cooldown end timestamp in game clock seconds |
+| `ab.get_charges()` | integer | Remaining active charges (`m_iRemainingCharges`) |
+| `ab.get_stacks()` / `ab.m_nNumStacks` | integer | Current stack count (auto-resolves for `CItem_RestorativeLocket`) |
+| `ab.get_toggle_state()` / `ab.m_bToggleState` | bool | Active toggle state (`m_bToggleState`) |
+| `ab.get_slot()` / `ab.m_eAbilitySlot` | integer | Slot index enum |
+| `ab.get_slot_name()` | string | Slot name string (e.g. `"ESlot_Signature_1"`) |
+| `ab.get_button_name()` | string | Button name (e.g. `"IN_ABILITY1"`, `"IN_ITEM1"`) |
+| `ab.get_button_mask()` | integer | Raw button bitmask for `CUserCmd:AddButtonState` |
+| `ab.get_scaled_property(prop)` | number | Scaled radius/height property |
+| `ab.get_aoe_radius()` | number | AoE effect radius in world units |
+| `ab.cast(cmd)` | bool | Automatically applies button bit to user command this tick |
 
 ### Example: enemy listing
 
@@ -131,6 +149,22 @@ local tr = Engine.TraceLine(start, Vector3.new(end.x, end.y, end.z), skipHandle)
 if tr.hit then
     log.info("blocked at fraction", tr.fraction, "by entity", tr.hit_entity)
 end
+```
+
+---
+
+## Game rules & Network channel
+
+Global helpers for server timing and ping estimation:
+
+| Function | Returns | Description |
+|---|---|---|
+| `game_rules.game_time()` | number | Server game clock in seconds (`Engine.GetCurTime()`) |
+| `net_channel.latency()` | number | Current latency / round-trip time in seconds (e.g. `0.03`) |
+
+```lua
+local pingMs = net_channel.latency() * 1000.0
+local timeNow = game_rules.game_time()
 ```
 
 ---

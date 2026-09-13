@@ -45,6 +45,9 @@ EModifierState = {}
 ---@field GetEntityEyeAngles fun(handle:integer):QAngle -- Eye angles of player pawn
 ---@field GetEntityName fun(handle:integer):string -- Designer-name of entity
 ---@field IsPlayer fun(handle:integer):boolean -- Entity is a citadel player pawn
+---@field GetEntityHealth fun(handle:integer):integer -- Current entity health
+---@field GetEntityMaxHealth fun(handle:integer):integer -- Maximum entity health
+---@field IsEntityAlive fun(handle:integer):boolean -- Check if entity is alive
 ---@field GetPlayers fun():table -- Array of player pawn handles
 ---@field GetBonePosition fun(handle:integer, slot:string):Vector3 -- First hitbox bone position for slot
 ---@field WorldToScreen fun(pos:Vector3):table -- Project world position to screen (returns {x,y,visible})
@@ -104,21 +107,26 @@ ImGui = {}
 InputBitMask_t = {}
 
 ---@class MenuNS
----@field Find fun(script_or_label:string, label:string?):table? -- Resolve a widget handle: Menu.Find(label) scans all scripts; Menu.Find(script, label) scopes; 5-arg legacy form returns a script handle
+---@field Create fun(tab:string, subtab:string?, section:string?, ...):MenuBuilder -- Fluent menu / category builder
+---@field Switch fun(tab:string?, subtab:string?, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
+---@field SliderInt fun(tab:string?, subtab:string?, label:string, min:integer, max:integer, default:integer?):WidgetHandle
+---@field SliderFloat fun(tab:string?, subtab:string?, label:string, min:number, max:number, default:number?):WidgetHandle
+---@field Slider fun(tab:string?, subtab:string?, label:string, min:number, max:number, default:number?, fmt:string?):WidgetHandle
+---@field Find fun(script_or_label:string, label:string?):WidgetHandle? -- Resolve a widget handle: Menu.Find(label) scans all scripts; Menu.Find(script, label) scopes
 ---@field Get fun(script_or_label:string, label:string?):any -- Read any widget's current value (kind-dispatched)
 ---@field Set fun(script_or_label:string, label:string?, value:any):nil -- Write any widget's value (bool/int/float/string/color)
----@field GetBool fun():boolean -- Read a switch (script?, label)
----@field GetInt fun():integer -- Read int slider/combo/keybind (script?, label)
----@field GetFloat fun():number -- Read float slider (script?, label)
----@field GetKey fun():integer -- Read keybind VK (script?, label)
----@field GetString fun():string -- Read input-text (script?, label)
----@field GetColor fun():table -- Read color {r,g,b,a} (script?, label)
----@field SetBool fun():nil -- Write a switch (script?, label, v)
----@field SetInt fun():nil -- Write slider/combo/keybind (script?, label, v)
----@field SetFloat fun():nil -- Write float slider (script?, label, v)
----@field SetKey fun():nil -- Write keybind (script?, label, v)
----@field SetString fun():nil -- Write input-text (script?, label, s)
----@field SetColor fun():nil -- Write color (script?, label, {r,g,b,a})
+---@field GetBool fun(script:string?, label:string):boolean -- Read a switch
+---@field GetInt fun(script:string?, label:string):integer -- Read int slider/combo/keybind
+---@field GetFloat fun(script:string?, label:string):number -- Read float slider
+---@field GetKey fun(script:string?, label:string):integer -- Read keybind VK
+---@field GetString fun(script:string?, label:string):string -- Read input-text
+---@field GetColor fun(script:string?, label:string):table -- Read color {r,g,b,a}
+---@field SetBool fun(script:string?, label:string, v:boolean):nil -- Write a switch
+---@field SetInt fun(script:string?, label:string, v:integer):nil -- Write slider/combo/keybind
+---@field SetFloat fun(script:string?, label:string, v:number):nil -- Write float slider
+---@field SetKey fun(script:string?, label:string, v:integer):nil -- Write keybind
+---@field SetString fun(script:string?, label:string, s:string):nil -- Write input-text
+---@field SetColor fun(script:string?, label:string, c:table):nil -- Write color
 Menu = {}
 
 ---@class QAngleNS
@@ -217,12 +225,21 @@ cvar = {}
 docs = {}
 
 ---@class entity_listNS
----@field by_handle fun(h:integer):table -- Wrap an entity by handle
----@field local_pawn fun():table -- Wrap the local player pawn
----@field by_class_name fun(cls:string):table -- All entities of a class
----@field enemies fun():table -- All players on the enemy team
----@field allies fun():table -- All players on your team (excludes self)
+---@field by_handle fun(h:integer):EntityWrapper -- Wrap an entity by handle
+---@field local_pawn fun():EntityWrapper -- Wrap the local player pawn
+---@field by_class_name fun(cls:string, filter:any?):EntityWrapper[] -- All entities of a class
+---@field enemies fun():EntityWrapper[] -- All players on the enemy team
+---@field allies fun():EntityWrapper[] -- All players on your team (excludes self)
 entity_list = {}
+entities = entity_list
+
+---@class game_rulesNS
+---@field game_time fun():number -- Game clock seconds
+game_rules = {}
+
+---@class net_channelNS
+---@field latency fun():number -- Current netchannel latency in seconds (0.03 default)
+net_channel = {}
 
 ---@class fsNS
 ---@field read fun(path:string):string -- Read a file as a string (nil if missing/escape)
@@ -300,4 +317,86 @@ ui = {}
 ---@field x number
 ---@field y number
 ---@field z number
+
+---@class EntityWrapper
+---@field valid fun(self:EntityWrapper):boolean -- Valid entity handle (> 0)
+---@field is_alive fun(self:EntityWrapper):boolean -- Life state == 0 and health > 0
+---@field get_health fun(self:EntityWrapper):integer -- Current entity health
+---@field get_max_health fun(self:EntityWrapper):integer -- Max entity health
+---@field has_modifier_state fun(self:EntityWrapper, state:integer):boolean -- Checks EModifierState
+---@field get_name fun(self:EntityWrapper):string -- Entity designer-name
+---@field get_origin fun(self:EntityWrapper):Vector3 -- World origin
+---@field get_handle fun(self:EntityWrapper):integer -- Raw integer handle
+---@field get_ability fun(self:EntityWrapper, name:string):AbilityWrapper|nil -- Find ability table
+---@field has_modifier fun(self:EntityWrapper, name:string):boolean -- Check active modifier by name
+---@field get_modifiers fun(self:EntityWrapper):table[] -- Get all active modifier tables
+---@field get_prop fun(self:EntityWrapper, propOrClass:string, maybeProp:string?):any -- Read schema field
+---@field m_iHealth integer -- Current health
+---@field m_iTeamNum integer -- Team number
+---@field m_sPlayerDamageTaken table -- Damage taken info
+
+---@class AbilityWrapper
+---@field get_cooldown fun():number -- Binary cooldown (0 or 10)
+---@field get_cooldown_end fun():number -- Cooldown end game time
+---@field m_flCooldownEnd number -- Cooldown end time
+---@field get_charges fun():integer -- Remaining charges
+---@field get_stacks fun():integer -- Stacks (supports CItem_RestorativeLocket)
+---@field m_nNumStacks integer -- Stack count
+---@field get_toggle_state fun():boolean -- Active toggle state
+---@field m_bToggleState boolean -- Toggle state
+---@field get_slot fun():integer -- Slot index
+---@field m_eAbilitySlot integer -- Slot enum value
+---@field get_slot_name fun():string -- Human readable slot name
+---@field get_button_name fun():string -- Button mask name ("IN_ABILITY1", etc.)
+---@field get_button_mask fun():integer -- Button bitmask
+---@field get_scaled_property fun(prop:string):number -- Read scaled ability property
+---@field get_aoe_radius fun():number -- AoE radius
+---@field cast fun(cmd:CUserCmd):boolean -- Cast via command buttons
+
+---@class MenuBuilder
+---@field Switch fun(self:MenuBuilder, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
+---@field Slider fun(self:MenuBuilder, label:string, min:number, max:number, default:number?, fmt:string?):WidgetHandle
+---@field SliderInt fun(self:MenuBuilder, label:string, min:integer, max:integer, default:integer?):WidgetHandle
+---@field SliderFloat fun(self:MenuBuilder, label:string, min:number, max:number, default:number?):WidgetHandle
+---@field Combo fun(self:MenuBuilder, label:string, options:string[], default:integer?):WidgetHandle
+---@field MultiCombo fun(self:MenuBuilder, label:string, options:string[], defaultMask:integer?):WidgetHandle
+---@field Keybind fun(self:MenuBuilder, label:string, defaultVK:integer?):WidgetHandle
+---@field Color fun(self:MenuBuilder, label:string, defaultColor:table?):WidgetHandle
+---@field Button fun(self:MenuBuilder, label:string, fn:function):WidgetHandle
+---@field Text fun(self:MenuBuilder, label:string):WidgetHandle
+---@field Separator fun(self:MenuBuilder):nil
+
+---@class WidgetHandle
+---@field get fun(self:WidgetHandle):any
+---@field Get fun(self:WidgetHandle):any
+---@field set fun(self:WidgetHandle, val:any):nil
+---@field Set fun(self:WidgetHandle, val:any):nil
+---@field get_bool fun(self:WidgetHandle):boolean
+---@field GetBool fun(self:WidgetHandle):boolean
+---@field get_int fun(self:WidgetHandle):integer
+---@field GetInt fun(self:WidgetHandle):integer
+---@field get_float fun(self:WidgetHandle):number
+---@field GetFloat fun(self:WidgetHandle):number
+---@field get_key fun(self:WidgetHandle):integer
+---@field GetKey fun(self:WidgetHandle):integer
+---@field get_string fun(self:WidgetHandle):string
+---@field GetString fun(self:WidgetHandle):string
+---@field get_color fun(self:WidgetHandle):table
+---@field GetColor fun(self:WidgetHandle):table
+---@field ToolTip fun(self:WidgetHandle, text:string):WidgetHandle
+---@field Tooltip fun(self:WidgetHandle, text:string):WidgetHandle
+---@field tooltip fun(self:WidgetHandle, text:string):WidgetHandle
+---@field Gear fun(self:WidgetHandle, label:string):MenuBuilder -- Adds settings gear sub-menu
+---@field gear fun(self:WidgetHandle, label:string):MenuBuilder
+---@field Icon fun(self:WidgetHandle, faGlyph:string):WidgetHandle -- FontAwesome icon
+---@field icon fun(self:WidgetHandle, faGlyph:string):WidgetHandle
+---@field Image fun(self:WidgetHandle, panoramaPath:string):WidgetHandle -- Panorama texture (e.g. panorama/images/items/...)
+---@field image fun(self:WidgetHandle, panoramaPath:string):WidgetHandle
+---@field SetCallback fun(self:WidgetHandle, fn:function, callImmediately:boolean?):WidgetHandle
+---@field set_callback fun(self:WidgetHandle, fn:function, callImmediately:boolean?):WidgetHandle
+---@field Visible fun(self:WidgetHandle, visible:boolean):WidgetHandle
+---@field visible fun(self:WidgetHandle, visible:boolean):WidgetHandle
+---@field Depend fun(self:WidgetHandle, predicate:fun():boolean):WidgetHandle
+---@field depend fun(self:WidgetHandle, predicate:fun():boolean):WidgetHandle
+
 

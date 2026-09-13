@@ -8,7 +8,52 @@ This repository is the canonical documentation, examples, and reference for the 
 
 ## What's new
 
-**Engine access**
+**Menu & UI Engine**
+- **`Menu.Create` & Fluent Chaining** — build rich multi-level category and section structures with nested gear popups:
+  ```lua
+  local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
+  local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
+  ui_aura:ToolTip("Casts Heroic Aura when allies are grouped up and an enemy is close.")
+
+  local ui_gear   = ui_aura:Gear("Settings") -- creates a nested popup sub-menu
+  local ui_allies = ui_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
+  local ui_radius = ui_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
+  ```
+- **Native Panorama Icons (`.vtex_c` / `.vtex`)** — pass in-game Panorama image paths directly to `:Switch` or `:Image`:
+  - Automatically resolved and cached through Deadlock's Panorama resource manager.
+  - Supports both compiled `.vtex_c` and logical `.vtex` seamlessly.
+  - **Dynamic UV cropping**: automatically extracts `m_flMaxU`/`m_flMaxV` from `CSource2UITexture` to crop out padding on 200x200 canvas textures.
+  - **Real-time BC3 YCoCg decoding**: on-the-fly conversion of DXT5 YCoCg compressed textures into crisp, 100% accurate 32-bit RGBA8 with solid alpha.
+- **`m:multi_combo("Flags", {"A","B","C"})`** — bitmask multi-select; `w:get_mask()`, `w:set_mask(bits)`, `w:has(i)`, `w:set_option(i, on)`.
+- **`w:depend(fn)`** & **`w:Visible(bool)`** — dynamic visibility control.
+- **`w:SetCallback(fn, [callNow])`** — reactive widget change triggers.
+
+**Entity & Pawn Inspection**
+- **Health & Alive Queries**:
+  ```lua
+  local hp    = Engine.GetEntityHealth(handle)
+  local maxHp = Engine.GetEntityMaxHealth(handle)
+  local alive = Engine.IsEntityAlive(handle)    -- m_lifeState == 0 and health > 0
+
+  -- Or via entity_list wrappers:
+  local enemy = entity_list:enemies()[1]
+  if enemy and enemy:is_alive() then
+      print(enemy:get_name(), enemy:get_health(), "/", enemy:get_max_health())
+  end
+  ```
+- **Extended Ability & Item Metadata**:
+  - `get_stacks()` / `m_nNumStacks` (with automatic class resolution for `CItem_RestorativeLocket`).
+  - `get_charges()`, `get_toggle_state()`, `get_cooldown_end()`.
+  - `get_slot()`, `get_slot_name()`, `get_button_name()`, `get_button_mask()`.
+  - `get_scaled_property("Radius")`, `get_aoe_radius()`.
+  - `cast(cmd)` — automatically taps the exact ability/item button bit into the user command.
+- **Modifier Attributes & Debuff Data**:
+  - Modifiers now expose `m_iTeam`, `m_flDuration`, and `get_vdata()` (`m_eDebuffType`, `m_nAttributes`).
+- **Game Rules & Network**:
+  - `game_rules.game_time()` — reads server game clock (`Engine.GetCurTime()`).
+  - `net_channel.latency()` — returns estimated round-trip latency in seconds.
+
+**Engine access & Convars**
 - **`cvar`** — find any console variable by name and read its value directly (typed by the engine's own convar type: int/float/bool/string), or write it through the console path:
   ```lua
   local fps = cvar.find("fps_max")
@@ -46,11 +91,6 @@ This repository is the canonical documentation, examples, and reference for the 
 - **`render.measure_text([size,] text)`** → `w, h` with the active font
 - **`render.line_3d(a, b, r, g, b, a, thick)`** — world-space line between two `Vector3`s
 - **`render.text_3d(pos, r, g, b, a, text)`** — text anchored to a world position
-
-**Menu**
-- **`m:multi_combo("Flags", {"A","B","C"})`** — bitmask multi-select; `w:get_mask()`, `w:set_mask(bits)`, `w:has(i)`, `w:set_option(i, on)`
-- **`w:depend(fn)`** — visibility predicate; the widget hides while `fn` returns false (state is kept)
-- Legacy `Menu.Switch / Menu.SliderInt / Menu.SliderFloat` now return the **real widget handle** — `get/set/on_change/depend` all work on them, and same-label widgets across scripts no longer collide
 
 **Vector / angle math**
 - `Vector3`: `Dot`, `Cross`, `Distance`, `Distance2D`, `Normalized`, `Normalize`, `ToAngles`, `IsZero` + `__add/sub/mul/div/eq/tostring`

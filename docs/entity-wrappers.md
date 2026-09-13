@@ -40,15 +40,21 @@ Every returned ent-table is a fresh Lua table — query closure values are captu
 
 ```lua
 {
-    valid = function(self) return h > 0 end,
-    is_alive = function(self) return true end,
-    m_iTeamNum = Engine.GetEntityTeam(h),
+    valid              = function(self) return h > 0 end,
+    is_alive           = function(self) return Engine.IsEntityAlive(h) end,
+    get_health         = function(self) return Engine.GetEntityHealth(h) end,
+    get_max_health     = function(self) return Engine.GetEntityMaxHealth(h) end,
     has_modifier_state = function(self, s) return Engine.EntityHasModifierState(h, s) end,
-    get_name = function(self) return Engine.GetEntityName(h) end,
-    get_origin = function(self) return Engine.GetEntityOrigin(h) end,
-    get_handle = function(self) return h end,
-    get_ability = function(self, name) return Engine.GetEntityAbility(h, name) end,
-    has_modifier = function(self, name) return Engine.EntityHasModifier(h, name) end,
+    get_name           = function(self) return Engine.GetEntityName(h) end,
+    get_origin         = function(self) return Engine.GetEntityOrigin(h) end,
+    get_handle         = function(self) return h end,
+    get_ability        = function(self, name) return Engine.GetEntityAbility(h, name) end,
+    has_modifier       = function(self, name) return Engine.EntityHasModifier(h, name) end,
+    get_modifiers      = function(self) return Engine.GetEntityModifiers(h) end,
+    get_prop           = function(self, propOrClass, maybeProp) ... end,
+    m_iHealth          = (via __index) Engine.GetEntityHealth(h),
+    m_iTeamNum         = (via __index) Engine.GetEntityTeam(h),
+    m_sPlayerDamageTaken = (via __index) { m_flLastDamageTime = Engine.GetCurTime() },
 }
 ```
 
@@ -56,7 +62,8 @@ Every returned ent-table is a fresh Lua table — query closure values are captu
 
 ```lua
 local lp = entity_list:local_pawn()
-if lp:valid() then
+if lp:valid() and lp:is_alive() then
+    log.info("my health =", lp:get_health(), "/", lp:get_max_health())
     log.info("my team =", lp.m_iTeamNum)
 end
 

@@ -197,21 +197,47 @@ All of these also accept the single-label form for cross-script discovery — e.
 ### Legacy factories
 
 ```lua
-Menu.Switch(cat, subcat, label, def)
-Menu.SliderInt(cat, subcat, label, def, mn, mx)
-Menu.SliderFloat(cat, subcat, label, def, mn, mx)
-Menu.Slider = Menu.SliderInt
-```
+### `Menu.Create` — hierarchical category builder
 
-These shim the old `Menu.Switch(...)` style. The two `cat`/`subcat` args are accepted for legacy call compatibility but **ignored** — the script resolution uses `__SCRIPT_NAME__` directly:
+For scripts that integrate into Deadlock's category and section tabs:
 
 ```lua
--- Equivalent; both register under the current script
-Menu.Switch("MyCategory", "MySubcat", "Auto Jump", false)
-UI.AddSwitch(__SCRIPT_NAME__, "Auto Jump", false)
+-- Declare or reference a hierarchy: (Category, Subcategory, Section, Tab, Subtab)
+Menu.Create("Miscellaneous", "", "Items Helper")
+local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
+
+-- Switch with native Panorama image texture
+local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
+ui_aura:ToolTip("Casts Heroic Aura when allies are grouped up and an enemy is close.")
+
+-- Gear sub-settings (nested popup inside the widget card)
+local ui_aura_gear = ui_aura:Gear("Settings")
+local ui_allies    = ui_aura_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
+local ui_range     = ui_aura_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
 ```
 
-The original implementation hardcoded `"AutoCounterspell"` as the script name — that latent bug was fixed in the rewrite.
+### Native Panorama textures & FontAwesome icons
+
+You can pass an icon or texture path directly to `:Switch(label, default, [iconOrImage])`, `:Icon(glyph)`, or `:Image(path)`:
+- **Panorama `.vtex_c` / `.vtex` textures**: e.g. `"panorama/images/items/weapon/heroic_aura_psd.vtex_c"` or `"panorama/images/items/spirit/arctic_blast_psd.vtex_c"`.
+  - The engine loads the asset directly from Deadlock's Panorama resource manager.
+  - Automatically normalizes `.vtex_c` and `.vtex`.
+  - Performs dynamic UV cropping (`m_flMaxU`, `m_flMaxV`) to remove padding from 200x200 icons inside 256x256 surfaces.
+  - Features real-time BC3 YCoCg-to-RGBA8 decoding for 100% accurate color fidelity.
+- **FontAwesome glyphs**: e.g. `FontAwesomeIcon.Cog` or standard glyph strings.
+
+### Chained widget modifiers
+
+| Method | Description |
+|---|---|
+| `w:ToolTip(text)` | Tooltip hover on the widget row |
+| `w:Gear(label)` | Returns a parent builder creating a settings gear popup |
+| `w:Slider(label, min, max, def, fmt)` | Formatted slider (e.g. `"%d%%"`, `"%d m"`) |
+| `w:Visible(bool)` | Dynamically hide or show the widget |
+| `w:Depend(fn)` | Visibility predicate function |
+| `w:SetCallback(fn, [callImmediately])` | Immediate or on-edit reactive callback |
+| `w:Icon(fa_glyph)` | FontAwesome icon |
+| `w:Image(vtex_path)` | Panorama texture icon |
 
 ---
 

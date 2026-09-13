@@ -435,6 +435,45 @@ Entity is a citadel player pawn
 
 **Returns:** `boolean`
 
+### `Engine.GetEntityHealth`
+
+```lua
+fun(handle:integer):integer
+```
+
+Current entity health (`m_iHealth`)
+
+**Arguments:**
+- `handle` — `integer`
+
+**Returns:** `integer`
+
+### `Engine.GetEntityMaxHealth`
+
+```lua
+fun(handle:integer):integer
+```
+
+Maximum entity health (`m_iMaxHealth`)
+
+**Arguments:**
+- `handle` — `integer`
+
+**Returns:** `integer`
+
+### `Engine.IsEntityAlive`
+
+```lua
+fun(handle:integer):boolean
+```
+
+Check if entity is alive (`m_lifeState == 0` and `health > 0`)
+
+**Arguments:**
+- `handle` — `integer`
+
+**Returns:** `boolean`
+
 ### `Engine.GetPlayers`
 
 ```lua

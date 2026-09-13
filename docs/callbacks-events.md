@@ -81,6 +81,35 @@ Each poll has a zero-subscriber early-out — events that no script has subscrib
 | `on_key_released` | — | key poll (post-cmd) | `vk:int` |
 | `on_script_loaded` | — | script load, once on first load | `()` |
 | `on_script_unloaded` | — | **not currently dispatched** | `()` |
+| `on_game_event` | `OnGameEvent` | engine game event hook | `e:table` |
+
+### `on_game_event(name, fn)` — named game events
+
+Listens for named engine game events (e.g. `"player_death"`, `"player_hurt"`, etc.), or pass `"*"` to receive all events.
+
+```lua
+-- Specific event
+callbacks.on_game_event("player_death", function(e)
+    local attacker = e:get_int("attacker")
+    local victim   = e:get_int("userid")
+    local weapon   = e:get_string("weapon")
+    print(string.format("Player %d killed %d with %s", attacker, victim, weapon))
+end)
+
+-- Catch-all
+callbacks.on_game_event("*", function(e)
+    print("Game event:", e.name)
+end)
+```
+
+Payload accessor `e`:
+- `e.name` (string)
+- `e:get_bool(key, [default])` → `bool`
+- `e:get_int(key, [default])` → `integer`
+- `e:get_float(key, [default])` → `number`
+- `e:get_string(key, [default])` → `string`
+
+⚠️ The event payload `e` is **only valid during the callback**. Copy values out into local variables instead of saving `e`.
 
 ### Not dispatched / partial
 
