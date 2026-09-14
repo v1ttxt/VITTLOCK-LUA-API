@@ -93,6 +93,21 @@ Returned by `Engine.GetEntityAbility(handle, name)` or `ent:get_ability(name)`:
 | `ab.get_aoe_radius()` | number | AoE effect radius in world units |
 | `ab.cast(cmd)` | bool | Automatically applies button bit to user command this tick |
 
+### Modifier table
+
+Returned in the array from `Engine.GetEntityModifiers(handle)`:
+
+| Field / Method | Returns | Description |
+|---|---|---|
+| `mod.name` | string | RTTI designer name (e.g. `"modifier_citadel_stunned"`) |
+| `mod.creation` | number | Game clock timestamp when applied |
+| `mod.duration` / `mod.m_flDuration` | number | Total duration in seconds (`<= 0` if passive/permanent) |
+| `mod.elapsed` | number | Seconds active so far (`curtime - creation`) |
+| `mod.remaining` | number | Seconds remaining (`duration - elapsed`, or `0` if passive) |
+| `mod.subclass_id` | integer | Ability subclass ID |
+| `mod.m_iTeam` | integer | Team number |
+| `mod.get_vdata()` | table | Returns `{ m_eDebuffType = 1, m_nAttributes = attr }` |
+
 ### Example: enemy listing
 
 ```lua

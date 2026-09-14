@@ -74,7 +74,7 @@ end)
 
 ## Buttons
 
-| Method | Description |
+| Method / Property | Description |
 |---|---|
 | `cmd:GetButtonState()` | Raw `buttonstate1` bitmask (`uint64_t`) |
 | `cmd:HasButtonState(bit)` | Test a single bit (see `InputBitMask_t`) |
@@ -84,7 +84,12 @@ end)
 | `cmd:ClearButton(bit)` | Alias of `RemoveButtonState` |
 | `cmd:PressButton(bit)` | Press this single tick (set + auto-clear at frame end) |
 | `cmd:TapButton(bit)` | Quick tap (press + release) |
-| `cmd:add_buttonstate1(bit)` | Legacy alias of `PressButton` |
+| `cmd:add_buttonstate1(bit)` | Mutate button word 0 (Hold) |
+| `cmd:add_buttonstate2(bit)` | Mutate button word 1 |
+| `cmd:add_buttonstate3(bit)` | Mutate button word 2 |
+| `cmd.buttonstate1` / `cmd.button_state0` | Property: button word 0 bitmask |
+| `cmd.buttonstate2` / `cmd.button_state1` | Property: button word 1 bitmask |
+| `cmd.buttonstate3` / `cmd.button_state2` | Property: button word 2 bitmask |
 
 `AddButtonState` and `HoldButton` are the same operation — `HoldButton` is the canonical name, `AddButtonState` is the legacy Lua alias. Both end up setting the bit for this tick.
 

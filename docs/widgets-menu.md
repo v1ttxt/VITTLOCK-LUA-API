@@ -111,9 +111,9 @@ Explicit setters:
 
 | Reactive | Note |
 |---|---|
-| `h:on_change(fn)` | Sets the func; called after `set_*` and `set` whenever invokable. The function takes no args; read state via the getters. |
-
-Use polling in `on_frame` rather than relying on `on_change` for now — it's dispatched synchronously from the setter, including from engine render, not from user input events.
+| `h:SetCallback(fn, [callNow])` | Called after user edits. Passes the widget handle directly (`fn(w)`). If `callNow` is true, executes immediately on declaration to sync initial state. |
+| `h:set_callback(fn, [callNow])` | Lowercase alias of `SetCallback`. |
+| `h:on_change(fn)` / `h:OnChange(fn)` | Equivalent alias. |
 
 ---
 
@@ -235,9 +235,28 @@ You can pass an icon or texture path directly to `:Switch(label, default, [iconO
 | `w:Slider(label, min, max, def, fmt)` | Formatted slider (e.g. `"%d%%"`, `"%d m"`) |
 | `w:Visible(bool)` | Dynamically hide or show the widget |
 | `w:Depend(fn)` | Visibility predicate function |
-| `w:SetCallback(fn, [callImmediately])` | Immediate or on-edit reactive callback |
+| `w:SetCallback(fn, [callImmediately])` | Immediate or on-edit reactive callback; passes `w` to `fn(w)` |
 | `w:Icon(fa_glyph)` | FontAwesome icon |
 | `w:Image(vtex_path)` | Panorama texture icon |
+
+#### Reactive Callback Example (`SetCallback`)
+
+The callback function receives the widget handle directly (`fn(w)`), making dynamic visibility switches clean and self-contained without forward-declaring local variables:
+
+```lua
+local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
+local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
+local ui_gear = ui_aura:Gear("Settings")
+local ui_allies = ui_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
+local ui_radius = ui_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
+
+-- Reacts when the toggle is clicked; passing `true` initializes visibility on load
+ui_aura:SetCallback(function(w)
+    local state = w:Get()
+    ui_allies:Visible(state)
+    ui_radius:Visible(state)
+end, true)
+```
 
 ---
 

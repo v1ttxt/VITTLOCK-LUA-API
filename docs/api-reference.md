@@ -144,7 +144,9 @@ Every factory above returns a handle. Handles are cheap to store in locals — r
 
 | Reactive | Note |
 |---|---|
-| `h:on_change(fn)` | Called after the value changes (WIP — polled on render, not dispatched every value change) |
+| `h:SetCallback(fn, [callNow])` | Called on user edit. Passes widget handle `fn(w)`. If `callNow=true`, executes immediately on declaration. |
+| `h:set_callback(fn, [callNow])` | Lowercase alias. |
+| `h:on_change(fn)` / `h:OnChange(fn)` | Equivalent alias. |
 
 #### Full example
 
@@ -328,6 +330,8 @@ end)
 | `ent:get_name()` | fn → string | Designer name |
 | `ent.m_iTeamNum` | int | Entity team |
 
+**`on_remove_modifier(serial)`**: Receives the integer serial number of the removed modifier.
+
 **`on_bullet_create(bullet)`** — rich table:
 
 ```lua
@@ -453,8 +457,12 @@ end
 | `Engine.GetEntityOrigin(h)` | Vector3 | World position |
 | `Engine.GetEntityName(h)` | string | Designer-name |
 | `Engine.IsPlayer(h)` | bool | Is a citadel player pawn |
-| `Engine.EntityHasModifierState(h, state)` | bool | |
+| `Engine.IsEntityAlive(h)` | bool | True if lifeState == 0 and health > 0 |
+| `Engine.GetEntityHealth(h)` | integer | Current health |
+| `Engine.GetEntityMaxHealth(h)` | integer | Maximum health |
+| `Engine.EntityHasModifierState(h, state)` | bool | Has modifier state (see `EModifierState`) |
 | `Engine.EntityHasModifier(h, name)` | bool | By modifier name |
+| `Engine.GetEntityModifiers(h)` | table[] | Array of active modifier objects (duration, remaining, vdata) |
 | `Engine.GetEntityAbility(h, name)` | table or nil | Returns `{get_cooldown = fn}` |
 | `Engine.GetBonePosition(h, slotName)` | Vector3 | `"Head"`, `"Neck"`, `"Torso"`, `"Arms"`, `"Legs"` |
 
@@ -506,8 +514,13 @@ Passed to `on_pre_createmove(cmd)` and `on_post_createmove(cmd)`. Mutating it in
 | `cmd:HoldButton(bit)` | Alias of `AddButtonState` |
 | `cmd:ClearButton(bit)` | Alias of `RemoveButtonState` |
 | `cmd:PressButton(bit)` | Press this tick only |
-| `cmd:TapButton(bit)` | Press + release this tick |
-| `cmd:add_buttonstate1(bit)` | Alias of `PressButton` |
+| `cmd:TapButton(bit)` | Quick tap (press + release) |
+| `cmd:add_buttonstate1(bit)` | Mutate button word 0 (Hold) |
+| `cmd:add_buttonstate2(bit)` | Mutate button word 1 |
+| `cmd:add_buttonstate3(bit)` | Mutate button word 2 |
+| `cmd.buttonstate1` / `cmd.button_state0` | Button word 0 bitmask |
+| `cmd.buttonstate2` / `cmd.button_state1` | Button word 1 bitmask |
+| `cmd.buttonstate3` / `cmd.button_state2` | Button word 2 bitmask |
 
 ```lua
 callbacks.on_pre_createmove(function(cmd)

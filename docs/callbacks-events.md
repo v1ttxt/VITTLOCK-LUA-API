@@ -67,7 +67,7 @@ Each poll has a zero-subscriber early-out — events that no script has subscrib
 | `on_render` | `on_draw` | render hook | `()` |
 | `on_render_world` | — | render hook (same pass — reserved) | `()` |
 | `on_add_modifier` | — | entity poll (post-cmd) | `mod:table, ent:table` |
-| `on_remove_modifier` | — | **dispatch not wired** | `mod:table, ent:table` |
+| `on_remove_modifier` | — | entity poll (post-cmd) | `serial:int` |
 | `on_particle_create` | — | entity poll (post-cmd) | `data:table` |
 | `on_particle_destroy` | — | entity poll (post-cmd) | `data:table` |
 | `on_bullet_create` | — | bullet fire hook | `bullet:table` |
@@ -82,6 +82,22 @@ Each poll has a zero-subscriber early-out — events that no script has subscrib
 | `on_script_loaded` | — | script load, once on first load | `()` |
 | `on_script_unloaded` | — | **not currently dispatched** | `()` |
 | `on_game_event` | `OnGameEvent` | engine game event hook | `e:table` |
+
+### `on_add_modifier` and `on_remove_modifier`
+
+Driven by a thread-safe, cache-backed entity pipeline. Polls all active player pawns under the entity cache lock, preventing game hitches and match loading crashes.
+
+```lua
+callbacks.on_add_modifier(function(mod, ent)
+    -- mod: { name = string, duration = number, get_name = function, get_duration = function }
+    -- ent: { get_handle = function, valid = function, get_name = function, m_iTeamNum = integer }
+    print(string.format("Modifier %s added to %s (team %d)", mod.name, ent:get_name(), ent.m_iTeamNum))
+end)
+
+callbacks.on_remove_modifier(function(serial)
+    -- serial: integer serial number of the removed modifier
+end)
+```
 
 ### `on_game_event(name, fn)` — named game events
 
@@ -113,7 +129,6 @@ Payload accessor `e`:
 
 ### Not dispatched / partial
 
-- `on_remove_modifier` — bound, but the polling logic only fires `on_add_modifier`. Track removal via `Engine.EntityHasModifier` polling.
 - `on_script_unloaded` — declared, never dispatched. Any subscription will simply never fire. Future work.
 - `on_render_world` — wired to the same handler as `on_render`. No separate world-space pass currently.
 

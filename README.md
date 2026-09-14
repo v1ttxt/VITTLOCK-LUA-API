@@ -26,7 +26,7 @@ This repository is the canonical documentation, examples, and reference for the 
   - **Real-time BC3 YCoCg decoding**: on-the-fly conversion of DXT5 YCoCg compressed textures into crisp, 100% accurate 32-bit RGBA8 with solid alpha.
 - **`m:multi_combo("Flags", {"A","B","C"})`** — bitmask multi-select; `w:get_mask()`, `w:set_mask(bits)`, `w:has(i)`, `w:set_option(i, on)`.
 - **`w:depend(fn)`** & **`w:Visible(bool)`** — dynamic visibility control.
-- **`w:SetCallback(fn, [callNow])`** — reactive widget change triggers.
+- **`w:SetCallback(fn, [callNow])`** — reactive widget change triggers passing the widget handle directly (`function(w) w:Get() ... end`), with optional immediate invocation for UI setup.
 
 **Entity & Pawn Inspection**
 - **Health & Alive Queries**:
@@ -41,6 +41,9 @@ This repository is the canonical documentation, examples, and reference for the 
       print(enemy:get_name(), enemy:get_health(), "/", enemy:get_max_health())
   end
   ```
+- **Active Modifiers & State Queries**:
+  - `entity:get_modifiers()` / `Engine.GetEntityModifiers(handle)` — returns active modifiers with duration, elapsed, remaining time, attributes, and debuff types.
+  - `entity:has_modifier_state(state)` / `Engine.EntityHasModifierState(handle, state)` — fast state check for 305 `EModifierState` schema constants (stunned, silenced, invisible, etc.).
 - **Extended Ability & Item Metadata**:
   - `get_stacks()` / `m_nNumStacks` (with automatic class resolution for `CItem_RestorativeLocket`).
   - `get_charges()`, `get_toggle_state()`, `get_cooldown_end()`.
@@ -48,10 +51,18 @@ This repository is the canonical documentation, examples, and reference for the 
   - `get_scaled_property("Radius")`, `get_aoe_radius()`.
   - `cast(cmd)` — automatically taps the exact ability/item button bit into the user command.
 - **Modifier Attributes & Debuff Data**:
-  - Modifiers now expose `m_iTeam`, `m_flDuration`, and `get_vdata()` (`m_eDebuffType`, `m_nAttributes`).
+  - Modifiers expose `name`, `creation`, `duration`, `elapsed`, `remaining`, `m_iTeam`, `m_flDuration`, and `get_vdata()` (`m_eDebuffType`, `m_nAttributes`).
 - **Game Rules & Network**:
   - `game_rules.game_time()` — reads server game clock (`Engine.GetCurTime()`).
   - `net_channel.latency()` — returns estimated round-trip latency in seconds.
+
+**User Command & Input Control**
+- **Direct Button Word Mutation**:
+  - `cmd:add_buttonstate1(mask)`, `cmd:add_buttonstate2(mask)`, `cmd:add_buttonstate3(mask)`
+  - `cmd:TapButton(mask)` — quick single-tick button tap (press + release).
+  - `cmd:HasButtonState(mask)`, `cmd:HoldButton(mask)`, `cmd:ClearButton(mask)`
+- **Thread-Safe Event Pipeline**:
+  - Modifier events (`on_add_modifier`, `on_remove_modifier`) driven by entity cache, completely eliminating match loading crashes.
 
 **Engine access & Convars**
 - **`cvar`** — find any console variable by name and read its value directly (typed by the engine's own convar type: int/float/bool/string), or write it through the console path:

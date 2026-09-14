@@ -143,9 +143,39 @@ callbacks.on_frame(function()
 end)
 ```
 
-⚠️ `:valid()` returns `h > 0` — it does **not** check that the entity is still alive or still has the same identity. A `2` followed by entity-replacement would silently pass. For best-practice, also call `Engine.IsPlayer(h)` and compare `Engine.GetEntityName(h)` to a cached name.
+⚠️ `:valid()` returns `h > 0` — it verifies the handle is non-zero. For best practice across multiple frames, also check `:is_alive()` or compare `Engine.GetEntityName(h)`.
 
-⚠️ `:is_alive()` always returns `true` — the binding doesn't read health or state, it's a placeholder. Use `Engine.HasModifierState(EModifierState.MODIFIER_STATE_OUT_OF_GAME)` or check abilities.
+`:is_alive()` verifies that `m_lifeState == 0` and current `m_iHealth > 0` via `Engine.IsEntityAlive(h)`.
+
+---
+
+### Active Modifiers (`ent:get_modifiers()`)
+
+Returns an array of all active modifier tables on the entity:
+
+```lua
+local target = entity_list:enemies()[1]
+if target and target:is_alive() then
+    for _, mod in ipairs(target:get_modifiers()) do
+        print(string.format("Modifier: %s | Remaining: %.1fs | Team: %d",
+            mod.name, mod.remaining, mod.m_iTeam))
+
+        local vd = mod.get_vdata()
+        -- vd.m_eDebuffType: 1 = standard debuff
+        -- vd.m_nAttributes: attribute flags bitmask
+    end
+end
+```
+
+Modifier fields:
+- `name` (string): RTTI designer name (e.g. `"modifier_citadel_stunned"`)
+- `creation` (number): Game clock creation timestamp
+- `duration` / `m_flDuration` (number): Total duration (`<= 0` for passive/permanent)
+- `elapsed` (number): Seconds elapsed since creation
+- `remaining` (number): Seconds remaining until expiration
+- `subclass_id` (integer): Ability subclass ID
+- `m_iTeam` (integer): Team number
+- `get_vdata()` (function): Returns `{ m_eDebuffType = 1, m_nAttributes = attr }`
 
 ---
 

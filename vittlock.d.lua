@@ -4,10 +4,32 @@
 
 ---@class CUserCmdNS
 ---@field GetCameraAngles fun():QAngle -- Current camera angles this tick
+---@field GetCameraPosition fun():Vector3 -- Camera position in world space
 ---@field SetCameraPosition fun(x:number, y:number, z:number):nil -- Override camera position (x,y,z)
 ---@field GetForwardMove fun():number -- Forward move axis (units/s)
 ---@field SetForwardMove fun(v:number):nil -- Set forward move axis
+---@field GetSideMove fun():number -- Lateral move axis (units/s)
+---@field SetSideMove fun(v:number):nil -- Set lateral move axis
+---@field SetUpMove fun(v:number):nil -- Set vertical impulse
+---@field GetViewAngles fun():QAngle -- View angles for command tick
+---@field SetViewAngles fun(ang:QAngle):nil -- Set view angles for command tick
+---@field GetButtonState fun():integer -- Raw buttonstate1 bitmask (uint64)
+---@field HasButtonState fun(bit:integer):boolean -- Test if button bit is held
 ---@field AddButtonState fun(bit:integer):nil -- Hold a button (see InputBitMask_t)
+---@field RemoveButtonState fun(bit:integer):nil -- Clear a button
+---@field HoldButton fun(bit:integer):nil -- Hold button for this tick
+---@field PressButton fun(bit:integer):nil -- Press button this tick (cleared next frame)
+---@field TapButton fun(bit:integer):nil -- Quick tap button
+---@field ClearButton fun(bit:integer):nil -- Clear button
+---@field add_buttonstate1 fun(bit:integer):nil -- Mutate button word 0 (Hold)
+---@field add_buttonstate2 fun(bit:integer):nil -- Mutate button word 1
+---@field add_buttonstate3 fun(bit:integer):nil -- Mutate button word 2
+---@field buttonstate1 integer -- Button word 0 bitmask
+---@field buttonstate2 integer -- Button word 1 bitmask
+---@field buttonstate3 integer -- Button word 2 bitmask
+---@field button_state0 integer -- Button word 0 bitmask
+---@field button_state1 integer -- Button word 1 bitmask
+---@field button_state2 integer -- Button word 2 bitmask
 CUserCmd = {}
 
 ---@class DebuggerNS
@@ -39,7 +61,7 @@ EModifierState = {}
 ---@field GetProjectiles fun():table[] -- Returns array of active projectile entities in the world
 ---@field EntityHasModifier fun(handle:integer, name:string):boolean -- Entity has a named modifier
 ---@field GetModifierRemainingTime fun(handle:integer, name:string):number -- Remaining seconds of active modifier on entity, -1 if absent
----@field GetEntityModifiers fun(handle:integer):table[] -- Get all active modifier objects for an entity
+---@field GetEntityModifiers fun(handle:integer):ModifierData[] -- Get all active modifier objects for an entity
 ---@field GetEntityTeam fun(handle:integer):integer -- Entity team, -1 if not found
 ---@field GetEntityOrigin fun(handle:integer):Vector3 -- World origin of entity
 ---@field GetEntityEyeAngles fun(handle:integer):QAngle -- Eye angles of player pawn
@@ -189,7 +211,7 @@ base64 = {}
 ---@field on_render fun() -- Every render frame (UI space)
 ---@field on_render_world fun() -- Every render frame (world space)
 ---@field on_add_modifier fun(mod:table, ent:table) -- Modifier added to any entity
----@field on_remove_modifier fun(mod:table, ent:table) -- Modifier removed
+---@field on_remove_modifier fun(serial:integer) -- Modifier removed (serial number)
 ---@field on_particle_create fun(data:table) -- Particle system spawned
 ---@field on_bullet_create fun(bullet:table) -- Bullet fired
 ---@field on_entity_create fun(handle:integer) -- Entity added to world
@@ -329,7 +351,7 @@ ui = {}
 ---@field get_handle fun(self:EntityWrapper):integer -- Raw integer handle
 ---@field get_ability fun(self:EntityWrapper, name:string):AbilityWrapper|nil -- Find ability table
 ---@field has_modifier fun(self:EntityWrapper, name:string):boolean -- Check active modifier by name
----@field get_modifiers fun(self:EntityWrapper):table[] -- Get all active modifier tables
+---@field get_modifiers fun(self:EntityWrapper):ModifierData[] -- Get all active modifier tables
 ---@field get_prop fun(self:EntityWrapper, propOrClass:string, maybeProp:string?):any -- Read schema field
 ---@field m_iHealth integer -- Current health
 ---@field m_iTeamNum integer -- Team number
@@ -392,11 +414,29 @@ ui = {}
 ---@field icon fun(self:WidgetHandle, faGlyph:string):WidgetHandle
 ---@field Image fun(self:WidgetHandle, panoramaPath:string):WidgetHandle -- Panorama texture (e.g. panorama/images/items/...)
 ---@field image fun(self:WidgetHandle, panoramaPath:string):WidgetHandle
----@field SetCallback fun(self:WidgetHandle, fn:function, callImmediately:boolean?):WidgetHandle
----@field set_callback fun(self:WidgetHandle, fn:function, callImmediately:boolean?):WidgetHandle
+---@field SetCallback fun(self:WidgetHandle, fn:fun(w:WidgetHandle):nil, callImmediately:boolean?):WidgetHandle
+---@field set_callback fun(self:WidgetHandle, fn:fun(w:WidgetHandle):nil, callImmediately:boolean?):WidgetHandle
+---@field OnChange fun(self:WidgetHandle, fn:fun(w:WidgetHandle):nil):WidgetHandle
+---@field on_change fun(self:WidgetHandle, fn:fun(w:WidgetHandle):nil):WidgetHandle
+---@field On fun(self:WidgetHandle, fn:fun(w:WidgetHandle):nil):WidgetHandle
 ---@field Visible fun(self:WidgetHandle, visible:boolean):WidgetHandle
 ---@field visible fun(self:WidgetHandle, visible:boolean):WidgetHandle
 ---@field Depend fun(self:WidgetHandle, predicate:fun():boolean):WidgetHandle
 ---@field depend fun(self:WidgetHandle, predicate:fun():boolean):WidgetHandle
+
+---@class ModifierVData
+---@field m_eDebuffType integer -- Debuff type enum (1 = standard debuff)
+---@field m_nAttributes integer -- Attribute bitmask flags
+
+---@class ModifierData
+---@field name string -- Modifier RTTI designer name
+---@field creation number -- Creation time in game clock seconds
+---@field duration number -- Total duration in seconds (<=0 if passive)
+---@field elapsed number -- Elapsed seconds (curtime - creation)
+---@field remaining number -- Remaining seconds (duration - elapsed)
+---@field subclass_id integer -- Ability subclass ID
+---@field m_iTeam integer -- Team number
+---@field m_flDuration number -- Duration alias
+---@field get_vdata fun():ModifierVData -- Debuff type and attribute information
 
 
