@@ -260,6 +260,71 @@ end, true)
 
 ---
 
+## Dedicated Script Sub-Tabs & Multi-Card Layouts
+
+Scripts can register their own dedicated sub-tab in the **Lua** tab with custom icons and multi-column card containers directly from Lua — with zero C++ modifications.
+
+### 1. `Menu.CreateSubTab([script_name], title, [icon])`
+
+Registers a top-level subtab header button next to the default `[Scripts]` manager.
+
+```lua
+local script_name = __SCRIPT_NAME__ or "MyScript"
+local subtab = Menu.CreateSubTab(script_name, "Lil Helpers", "combat")
+```
+
+- `script_name` (optional): Name of the script. If omitted, defaults to `__SCRIPT_NAME__`.
+- `title`: Display title in the header pill bar (e.g. `"Lil Helpers"`, `"Items Helper"`, `"Counterspell"`).
+- `icon`: FontAwesome glyph or Lumin icon identifier:
+  - `"combat"` — crossed swords / weapon
+  - `"loot"` — treasure chest / items
+  - `"polish"` — shield / defense
+  - `"match"` — crosshair / aim
+  - `"player"` — hero pawn
+  - `"world"` — map / environment
+  - `"folder"` — scripts folder
+
+### 2. Cards & Multi-Column Layout (`:Section` / `:Card`)
+
+Call `:Section(title)` or `:Card(title)` on the sub-tab handle to divide your controls into distinct card sections:
+
+```lua
+-- Left Column: Card 1
+local left_card = subtab:Section("Lil Helpers & Targets")
+local enabled   = left_card:Switch("Auto Lil Helpers", true)
+local targets   = left_card:MultiCombo("Targets", {"Heroes", "Troopers", "Bosses"}, {"Heroes"})
+local range     = left_card:Slider("Range", 5.0, 80.0, 30.0, "%.1fm")
+
+-- Right Column: Card 2
+local right_card = subtab:Section("Visuals & ESP")
+local trail      = right_card:Switch("Target Trail", true)
+local trail_time = right_card:Slider("Trail Delay", 0.05, 1.0, 0.28, "%.2fs")
+local esp_color  = right_card:ColorPicker("ESP Color", Color(120, 220, 255, 255))
+```
+
+#### Automatic Multi-Column Split
+- **>= 2 Sections**: The engine automatically renders an elegant two-column layout (`left_card` in Left column, subsequent cards grouped in Right column with clean section headings).
+- **1 Section**: Renders a full-width centered card container.
+- **Auto Manager Filter**: Scripts with dedicated sub-tabs are automatically hidden from the generic Scripts manager card to avoid UI clutter.
+
+### 3. MultiCombo Options (`:MultiCombo`)
+
+Multi-select dropdown with bitmask and per-option query:
+
+```lua
+local types = right_card:MultiCombo("Debuffs", { "Disarm", "Root", "Slow", "Silence" }, { "Disarm", "Root" })
+
+-- Check if a specific option is checked:
+if types:Get("Disarm") then
+    -- Disarm is selected
+end
+
+-- Read raw bitmask:
+local mask = types:GetMask()
+```
+
+---
+
 ## Widget kinds
 
 The widget types the engine recognises:

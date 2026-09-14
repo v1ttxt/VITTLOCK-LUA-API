@@ -130,6 +130,7 @@ InputBitMask_t = {}
 
 ---@class MenuNS
 ---@field Create fun(tab:string, subtab:string?, section:string?, ...):MenuBuilder -- Fluent menu / category builder
+---@field CreateSubTab fun(script_or_title:string, title_or_icon:string?, icon:string?):MenuBuilder -- Register a dedicated script sub-tab in Lua tab
 ---@field Switch fun(tab:string?, subtab:string?, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
 ---@field SliderInt fun(tab:string?, subtab:string?, label:string, min:integer, max:integer, default:integer?):WidgetHandle
 ---@field SliderFloat fun(tab:string?, subtab:string?, label:string, min:number, max:number, default:number?):WidgetHandle
@@ -381,16 +382,21 @@ ui = {}
 ---@field SliderInt fun(self:MenuBuilder, label:string, min:integer, max:integer, default:integer?):WidgetHandle
 ---@field SliderFloat fun(self:MenuBuilder, label:string, min:number, max:number, default:number?):WidgetHandle
 ---@field Combo fun(self:MenuBuilder, label:string, options:string[], default:integer?):WidgetHandle
----@field MultiCombo fun(self:MenuBuilder, label:string, options:string[], defaultMask:integer?):WidgetHandle
+---@field MultiCombo fun(self:MenuBuilder, label:string, options:string[], defaultMaskOrList:any?):WidgetHandle
 ---@field Keybind fun(self:MenuBuilder, label:string, defaultVK:integer?):WidgetHandle
 ---@field Color fun(self:MenuBuilder, label:string, defaultColor:table?):WidgetHandle
+---@field ColorPicker fun(self:MenuBuilder, label:string, defaultColor:table?, icon:string?):WidgetHandle
 ---@field Button fun(self:MenuBuilder, label:string, fn:function):WidgetHandle
 ---@field Text fun(self:MenuBuilder, label:string):WidgetHandle
 ---@field Separator fun(self:MenuBuilder):nil
+---@field Section fun(self:MenuBuilder, name:string):MenuBuilder -- Declares a new card section / multi-column card
+---@field Card fun(self:MenuBuilder, name:string):MenuBuilder -- Alias for Section
+---@field CreateSection fun(self:MenuBuilder, name:string):MenuBuilder
+---@field CreateCard fun(self:MenuBuilder, name:string):MenuBuilder
 
 ---@class WidgetHandle
----@field get fun(self:WidgetHandle):any
----@field Get fun(self:WidgetHandle):any
+---@field get fun(self:WidgetHandle, optOrIndex:any?):any
+---@field Get fun(self:WidgetHandle, optOrIndex:any?):any
 ---@field set fun(self:WidgetHandle, val:any):nil
 ---@field Set fun(self:WidgetHandle, val:any):nil
 ---@field get_bool fun(self:WidgetHandle):boolean
@@ -405,6 +411,12 @@ ui = {}
 ---@field GetString fun(self:WidgetHandle):string
 ---@field get_color fun(self:WidgetHandle):table
 ---@field GetColor fun(self:WidgetHandle):table
+---@field get_mask fun(self:WidgetHandle):integer -- MultiCombo bitmask value
+---@field GetMask fun(self:WidgetHandle):integer
+---@field set_mask fun(self:WidgetHandle, mask:integer):nil
+---@field SetMask fun(self:WidgetHandle, mask:integer):nil
+---@field has fun(self:WidgetHandle, index:integer):boolean
+---@field set_option fun(self:WidgetHandle, index:integer, enabled:boolean):nil
 ---@field ToolTip fun(self:WidgetHandle, text:string):WidgetHandle
 ---@field Tooltip fun(self:WidgetHandle, text:string):WidgetHandle
 ---@field tooltip fun(self:WidgetHandle, text:string):WidgetHandle

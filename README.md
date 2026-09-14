@@ -8,6 +8,23 @@ This repository is the canonical documentation, examples, and reference for the 
 
 ## What's new
 
+**100% Dynamic Lua Sub-Tabs & Multi-Card UI (Zero C++ Decoupled)**
+- **`Menu.CreateSubTab([script], title, icon)`** — create dedicated, top-level script sub-tabs in the **Lua** tab directly from Lua code:
+  ```lua
+  local subtab = Menu.CreateSubTab("Lil Helpers", "combat")
+  
+  -- Left Column Card
+  local left = subtab:Section("Combat & Targets")
+  left:Switch("Auto Combo", true)
+  
+  -- Right Column Card
+  local right = subtab:Section("Visuals & ESP")
+  right:ColorPicker("ESP Color", Color(120, 220, 255, 255))
+  ```
+- **Automatic 2-Column Card Splitting** — calling `:Section(name)` or `:Card(name)` automatically groups widgets and renders side-by-side card containers with zero layout boilerplate.
+- **Zero C++ Hardcoding** — all hardcoded script tabs have been eliminated from C++. Any script dynamically defines its subtab, icon, and cards at runtime.
+- **Auto Manager Filtering** — scripts registering a subtab are automatically filtered from the generic Scripts manager card.
+
 **Menu & UI Engine**
 - **`Menu.Create` & Fluent Chaining** — build rich multi-level category and section structures with nested gear popups:
   ```lua

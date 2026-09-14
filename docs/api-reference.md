@@ -221,6 +221,8 @@ Find existing menu widgets across any script and dynamically get or set their va
 
 | Function / Method | Args | Description |
 |---|---|---|
+| `Menu.CreateSubTab([script], title, [icon])` | `(string?, string, string?)` | Registers a dedicated script sub-tab in the Lua menu |
+| `subtab:Section(name)` / `:Card(name)` | `(string)` | Declares a new card container; auto-splits into two-column layout |
 | `Menu.Find(script, label)` or `Menu.Find(label)` | `(string, string)` or `(string)` | Returns a reactive widget handle for the given widget |
 | `Menu.Get(script, label)` or `Menu.Get(label)` | `(string, string)` or `(string)` | Read any widget's current value |
 | `Menu.Set(script, label, val)` or `Menu.Set(label, val)` | `(string, string, any)` or `(string, any)` | Set any widget's value (bool, int, float, string, color table) |
