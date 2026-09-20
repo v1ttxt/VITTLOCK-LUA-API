@@ -17,6 +17,7 @@ Runnable VITTLOCK Lua scripts — drop them into `C:\VITTLOCK\Scripts\<SubDir>\`
 | 11 | `11-psilent-fov-override.lua` | Native `CAimbot` setting control through `aimbot.get/set` |
 | 12 | `12-dynamic-subtab.lua` | Dedicated script sub-tab with 2-column card split, MultiCombo & reactive visibility |
 | 13 | `13-custom-fonts-and-images.lua` | Dynamic font sizing, custom TTF fonts, Cyrillic/FontAwesome, images, polygons & os.date |
+| 14 | `14-icon-inspector.lua` | Comprehensive test suite for FontAwesome 6 icons, geometric shapes, Cyrillic & arrows |
 
 ## How to load these
 
