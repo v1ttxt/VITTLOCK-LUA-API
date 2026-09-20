@@ -13,7 +13,7 @@ local left_card = tab:Create("Display Settings", Enum.GroupSide.Left)
 local ui_enabled    = left_card:Switch("Enabled", true)
 local ui_pos_x      = left_card:Slider("HUD X", 0, 1920, 60)
 local ui_pos_y      = left_card:Slider("HUD Y", 0, 1080, 60)
-local ui_size       = left_card:Slider("Icon Size", 10, 22, 14)
+local ui_size       = left_card:Slider("Icon Size", 11, 24, 14)
 local ui_glass      = left_card:Switch("Frosted Glass Background", true)
 local ui_show_clock = left_card:Switch("Show Clock Badge", true)
 
@@ -72,13 +72,28 @@ local function get_slider_val(w, fallback)
     return v or fallback
 end
 
+-- Snap to pre-warmed atlas font sizes to prevent runtime atlas rebuilding
+local safe_font_sizes = { 11, 13, 14, 16, 18, 20, 22, 24 }
+local function get_safe_icon_size(raw)
+    local best = 14
+    local min_diff = 999
+    for _, sz in ipairs(safe_font_sizes) do
+        local d = math.abs(sz - raw)
+        if d < min_diff then
+            min_diff = d
+            best = sz
+        end
+    end
+    return best
+end
+
 callbacks.on_render(function()
     if not ui_enabled:GetBool() then return end
 
     local base_x  = get_slider_val(ui_pos_x, 60.0)
     local base_y  = get_slider_val(ui_pos_y, 60.0)
-    local icon_sz = get_slider_val(ui_size, 14.0)
-    if not icon_sz or icon_sz < 8 then icon_sz = 14.0 end
+    local raw_sz  = get_slider_val(ui_size, 14.0)
+    local icon_sz = get_safe_icon_size(raw_sz)
 
     local width   = 540.0
     local padding = 16.0
