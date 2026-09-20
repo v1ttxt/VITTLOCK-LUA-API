@@ -8,6 +8,41 @@ This repository is the canonical documentation, examples, and reference for the 
 
 ## What's new
 
+**Rendering Engine Expansion & Extended Fonts (`render.*`)**
+- **Dynamic Font Sizing & Custom TTF/OTF Fonts** — `render.text(x, y, r, g, b, a, text, [size], [font])`, `render.load_font(name, path, size)`, `render.push_font(font)`, `render.pop_font()`:
+  ```lua
+  local header_font = render.load_font("HeaderFont", "C:/Windows/Fonts/segoeui.ttf", 24)
+  render.text(100, 100, 255, 255, 255, 255, "Custom Sized Header", 24, "HeaderFont")
+  ```
+- **Cyrillic & Extended Unicode Support** — native font atlas baking for Cyrillic (`0x0400` - `0x04FF`) and geometric shapes (`0x25A0` - `0x25FF`, `0x2190` - `0x21FF`). Russian/Ukrainian text and symbols (`▶`, `●`, `★`, `⚠`, arrows) render crisp without turning into `?`.
+- **Native FontAwesome 6 Icons** — embedded FontAwesome icon atlas available via font name `"fontawesome"` or `"fa"`:
+  ```lua
+  render.text(20, 20, 255, 100, 100, 255, "\xef\x80\x84", 18, "fontawesome") -- Heart
+  ```
+- **Dual-Dimension Text Measurement (`render.measure_text`)** — returns `w, h` as a multi-value tuple:
+  ```lua
+  local w, h = render.measure_text("Deadlock", 18)
+  ```
+- **Image & Texture Rendering (`render.load_image`, `render.image`, `render.panorama_image`)** — load external `.png`, `.jpg`, `.bmp`, `.tga` files or stream in-game Panorama `.vtex_c` textures onto the overlay with GPU caching:
+  ```lua
+  local img = render.load_image("C:/VITTLOCK/assets/logo.png")
+  if img then
+      render.image(img, 50, 50, 64, 64, 255, 255, 255, 255)
+  end
+  render.panorama_image("panorama/images/items/weapon/blood_tribute_psd.vtex_c", 130, 50, 64, 64)
+  ```
+- **Polygons & Outlines** — `render.filled_polygon(points, r, g, b, a)` and `render.polygon(points, r, g, b, a, [closed], [thick])` for convex polygons, FOV cones, and directional arrows.
+- **Backdrop Blur & Frosted Glass** — `render.glass_rect(x, y, w, h, [passes], [rounding], [border])` and `render.blur(x, y, w, h, [passes], [rounding])`.
+- **Full `os.date` and `os.time` Standard Library** — supports formatted date strings (`"%Y-%m-%d %H:%M:%S"`), table mode (`"*t"`), and UTC (`"!*t"`).
+
+**Core Engine & Menu Stability**
+- **HUD Drag Race Conditions** — resolved race conditions where event bars and notifications were dragged unintentionally while dragging the menu.
+- **Script Toggle Persistence** — fixed script toggle switch state syncing and reactive callback dispatching.
+- **Top-Left Ghost Rectangle Eliminated** — removed orphaned un-offset glass sidebar and guarded pill rendering.
+- **Viewport Boundary Clamping** — clamped menu coordinates within screen boundaries `[0, DisplaySize - WindowSize]`.
+- **DeltaTime Easing Fix** — fixed animation step calculations across varying refresh rates.
+- **100% Opaque Menu Presets** — enforced solid opacity across all theme presets and Glacier plate.
+
 **Dynamic Multi-Tab Architecture & Explicit Side Routing (`Menu.Create`)**
 - **`Menu.Create(category, sub, scriptName, tabName, [sectionHeader])`** — create dedicated, interactive mini-tabs in Lumin with an animated pill bar:
   ```lua
@@ -123,7 +158,13 @@ This repository is the canonical documentation, examples, and reference for the 
 
 **Input & render**
 - **`input`** — `input.get_cursor_position()`, `input.is_button_down(0x01)`, `input.is_key_down(vk)`, `input.get_scroll()`, `input.get_screen_size()`
-- **`render.measure_text([size,] text)`** → `w, h` with the active font
+- **`render.text(x, y, r, g, b, a, text, [size], [font])`** — dynamically sized text, Cyrillic + geometric shapes, FontAwesome icons
+- **`render.load_font(name, path, size)` / `render.push_font` / `render.pop_font`** — custom TTF/OTF font loading and scoped font stacks
+- **`render.measure_text(text, [size], [font])`** → `w, h` dual-dimension metric tuple
+- **`render.load_image(path)` & `render.image(img, x, y, [w], [h], [r,g,b,a])`** — GPU-accelerated texture rendering from disk
+- **`render.panorama_image(path, x, y, [w], [h])`** — direct Panorama `.vtex_c` texture rendering with UV auto-crop
+- **`render.filled_polygon(points, r, g, b, a)` & `render.polygon(points, ...)`** — 2D convex filled polygons and outlines
+- **`render.glass_rect(...)` & `render.blur(...)`** — frosted glass backdrop panels and dual-pass blur
 - **`render.line_3d(a, b, r, g, b, a, thick)`** — world-space line between two `Vector3`s
 - **`render.text_3d(pos, r, g, b, a, text)`** — text anchored to a world position
 

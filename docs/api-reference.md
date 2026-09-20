@@ -691,14 +691,26 @@ Direct access to ImGui's foreground draw list. Coordinates are screen pixels.
 | `render.rect(x, y, w, h, r, g, b, a, thick, rounding)` | | Rectangle outline |
 | `render.filled_rect(x, y, w, h, r, g, b, a, rounding)` | | Filled rectangle |
 | `render.circle(x, y, radius, r, g, b, a, segments, thick)` | | Circle outline |
-| `render.text(x, y, r, g, b, a, s)` | | Text at screen coords |
+| `render.text(x, y, r, g, b, a, s, [size], [font])` | | Text at screen coords with dynamic sizing & custom font / FontAwesome |
+| `render.load_font(name, path, size, [flags])` | | Load custom TTF/OTF font from disk |
+| `render.push_font(font)` / `render.pop_font()` | | Scoped font stack for batch text rendering |
+| `render.measure_text(text, [size], [font])` | | Returns `(width, height)` |
+| `render.load_image(path)` | | Load PNG/JPG/BMP/TGA texture into GPU memory, returns handle `{ width, height, id }` |
+| `render.image(img, x, y, [w], [h], [r, g, b, a])` | | Render GPU texture with optional scaling & tint |
+| `render.panorama_image(path, x, y, [w], [h], [r, g, b, a])` | | Render in-game Panorama `.vtex_c` texture |
+| `render.filled_polygon(points, r, g, b, a)` | | Render filled 2D convex polygon from vertex list |
+| `render.polygon(points, r, g, b, a, [closed], [thick])` | | Render polyline or outline |
+| `render.glass_rect(x, y, w, h, [passes], [rounding], [border])` | | Render frosted glass panel with GPU blur |
+| `render.blur(x, y, w, h, [passes], [rounding])` | | Dual-pass Gaussian backdrop blur |
+| `render.line_3d(a, b, r, g, b, a, thick)` | | World-space 3D line |
+| `render.text_3d(pos, r, g, b, a, text)` | | World-space 3D text |
 
-Colours are `0..1` floats.
+Colours are `0..1` floats or `0..255` integers.
 
 ```lua
 callbacks.on_render(function()
-    render.filled_rect(10, 10, 100, 30, 0, 0, 0, 0.75, 4)
-    render.text(16, 16, 1, 1, 1, 1, "hello world")
+    render.glass_rect(10, 10, 220, 60, 3, 6)
+    render.text(20, 20, 1, 1, 1, 1, "▶ Player Status: Alive ●", 16)
 end)
 ```
 

@@ -15,11 +15,75 @@ Coordinates are screen pixels (`0..(w-1), 0..(h-1)` where `w=ImGui::GetIO().Disp
 
 | Function | Signature | What it does |
 |---|---|---|
-| `render.line(x1, y1, x2, y2, r, g, b, a, thick)` | drawn as a line segment from `(x1,y1)` to `(x2,y2)` |
-| `render.rect(x, y, w, h, r, g, b, a, thick, rounding)` | rectangle outline, top-left = `(x,y)`, size = `(w,h)`, corners rounded by `rounding` px |
-| `render.filled_rect(x, y, w, h, r, g, b, a, rounding)` | filled rectangle, otherwise same args |
-| `render.circle(x, y, radius, r, g, b, a, segments, thick)` | outlined circle |
-| `render.text(x, y, r, g, b, a, s)` | text at screen coords (woff used; uses current ImGui font) |
+| `render.line(x1, y1, x2, y2, r, g, b, a, thick)` | | Drawn as a line segment from `(x1,y1)` to `(x2,y2)` |
+| `render.rect(x, y, w, h, r, g, b, a, thick, rounding)` | | Rectangle outline, top-left = `(x,y)`, size = `(w,h)`, corners rounded by `rounding` px |
+| `render.filled_rect(x, y, w, h, r, g, b, a, rounding)` | | Filled rectangle, otherwise same args |
+| `render.circle(x, y, radius, r, g, b, a, segments, thick)` | | Outlined circle |
+| `render.text(x, y, r, g, b, a, s, [size], [font])` | | Text at screen coords with optional size in px and font name/alias |
+| `render.load_font(name, path, size, [flags])` | | Loads custom TTF/OTF font from disk, returns font handle |
+| `render.push_font(font)` / `render.pop_font()` | | Scopes active font for batch rendering calls |
+| `render.measure_text(text, [size], [font])` | | Returns `(width, height)` of the rendered string |
+| `render.load_image(path)` | | Loads PNG/JPG/BMP/TGA into a GPU texture, returns image table `{ width, height, id }` |
+| `render.image(img, x, y, [w], [h], [r, g, b, a])` | | Renders an image handle on screen with optional scaling and tint |
+| `render.panorama_image(path, x, y, [w], [h], [r, g, b, a])` | | Renders an in-game Panorama `.vtex_c` texture anywhere on screen |
+| `render.filled_polygon(points, r, g, b, a)` | | Draws filled 2D convex polygon from vertex list `{{x, y}, ...}` |
+| `render.polygon(points, r, g, b, a, [closed], [thick])` | | Draws polyline / polygon outline from vertex list |
+| `render.glass_rect(x, y, w, h, [passes], [rounding], [border])` | | Draws frosted glass backdrop panel with GPU blur |
+| `render.blur(x, y, w, h, [passes], [rounding])` | | Dual-pass Gaussian blur filter over bounding rectangle |
+| `render.line_3d(a, b, r, g, b, a, thick)` | | World-space 3D line between two `Vector3`s |
+| `render.text_3d(pos, r, g, b, a, text)` | | World-space 3D text anchored to a `Vector3` position |
+
+---
+
+### Custom Fonts, Cyrillic & FontAwesome Icons
+
+All fonts support full Cyrillic (`0x0400` - `0x04FF`), geometric shapes (`▶`, `●`, `★`, `⚠`, arrows), and FontAwesome 6 icons.
+
+```lua
+-- Dynamic sizing on default font
+render.text(50, 50, 255, 255, 255, 255, "Header Title", 22)
+
+-- Cyrillic and symbols
+render.text(50, 80, 255, 255, 255, 255, "▶ Игрок: Абрамс ●", 16)
+
+-- FontAwesome 6 icons (use font = "fontawesome" or "fa")
+render.text(50, 110, 255, 100, 100, 255, "\xef\x80\x84", 20, "fontawesome") -- Heart icon
+render.text(80, 110, 100, 200, 255, 255, "\xef\x84\x9e", 20, "fa")          -- Crosshairs
+
+-- Load external TTF
+local my_font = render.load_font("GameFont", "C:/Windows/Fonts/verdana.ttf", 20)
+render.text(50, 140, 200, 255, 200, 255, "Verdana Custom Font", 20, "GameFont")
+```
+
+---
+
+### Image & Panorama Texture Rendering
+
+```lua
+-- External image from disk
+local avatar = render.load_image("C:/VITTLOCK/assets/avatar.png")
+if avatar then
+    -- render.image(image, x, y, [w], [h], [r, g, b, a])
+    render.image(avatar, 20, 20, 48, 48, 255, 255, 255, 255)
+end
+
+-- In-game Panorama texture
+render.panorama_image("panorama/images/items/weapon/blood_tribute_psd.vtex_c", 80, 20, 48, 48)
+```
+
+---
+
+### Polygons, Glass & Blur
+
+```lua
+-- Triangle polygon
+local tri = { { 300, 100 }, { 340, 160 }, { 260, 160 } }
+render.filled_polygon(tri, 255, 60, 80, 200)
+render.polygon(tri, 255, 255, 255, 255, true, 2.0)
+
+-- Frosted glass panel
+render.glass_rect(400, 200, 250, 150, 3, 8.0, { 255, 255, 255, 40 })
+```
 
 ### Common recipes
 

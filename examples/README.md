@@ -16,6 +16,7 @@ Runnable VITTLOCK Lua scripts — drop them into `C:\VITTLOCK\Scripts\<SubDir>\`
 | 10 | `10-full-template.lua` | Comprehensive template covering every subsystem — copy as your starting point |
 | 11 | `11-psilent-fov-override.lua` | Native `CAimbot` setting control through `aimbot.get/set` |
 | 12 | `12-dynamic-subtab.lua` | Dedicated script sub-tab with 2-column card split, MultiCombo & reactive visibility |
+| 13 | `13-custom-fonts-and-images.lua` | Dynamic font sizing, custom TTF fonts, Cyrillic/FontAwesome, images, polygons & os.date |
 
 ## How to load these
 

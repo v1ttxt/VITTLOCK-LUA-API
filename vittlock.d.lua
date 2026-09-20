@@ -314,16 +314,40 @@ log = {}
 ---@field angle_vectors fun(angles:QAngle):Vector3 -- Convert QAngle to forward vector
 math = {}
 
+---@class ImageHandle
+---@field width integer -- Texture pixel width
+---@field height integer -- Texture pixel height
+---@field id integer -- Internal texture ID
+
+---@class FontHandle
+---@field name string -- Font name
+
 ---@class renderNS
----@field line fun(x1:number, y1:number, x2:number, y2:number, r:number, g:number, b:number, a:number, thick:number):nil -- Draw a line
----@field rect fun():nil -- Draw a rectangle outline
----@field filled_rect fun():nil -- Draw a filled rectangle
----@field circle fun():nil -- Draw a circle outline
----@field text fun():nil -- Draw text at screen coords
----@field measure_text fun(size:number (optional), text:string):number, number -- Measure text with the active font — (w,h) = measure_text([size,] text)
----@field line_3d fun(a:Vector3, b:Vector3, r:number, g:number, b:number, a:number, thick:number):nil -- World-space line (drawn when both endpoints project on screen)
+---@field line fun(x1:number, y1:number, x2:number, y2:number, r:number, g:number, b:number, a:number, thick:number?):nil -- Draw a line
+---@field rect fun(x:number, y:number, w:number, h:number, r:number, g:number, b:number, a:number, thick:number?, rounding:number?):nil -- Draw a rectangle outline
+---@field filled_rect fun(x:number, y:number, w:number, h:number, r:number, g:number, b:number, a:number, rounding:number?):nil -- Draw a filled rectangle
+---@field circle fun(x:number, y:number, radius:number, r:number, g:number, b:number, a:number, segments:integer?, thick:number?):nil -- Draw a circle outline
+---@field text fun(x:number, y:number, r:number, g:number, b:number, a:number, text:string, size:number?, font:string?):nil -- Draw text at screen coords with optional size and font
+---@field load_font fun(name:string, path:string, size:number, flags:integer?):FontHandle -- Load custom TTF/OTF font from disk
+---@field push_font fun(font:string|FontHandle):nil -- Push font onto font stack
+---@field pop_font fun():nil -- Pop font from font stack
+---@field measure_text fun(text:string, size:number?, font:string?):number, number -- Measure text width and height — (w,h) = measure_text(text, [size], [font])
+---@field load_image fun(path:string):ImageHandle? -- Load image into GPU texture (PNG, JPG, BMP, TGA)
+---@field image fun(img:ImageHandle, x:number, y:number, w:number?, h:number?, r:number?, g:number?, b:number?, a:number?):nil -- Render image texture
+---@field panorama_image fun(path:string, x:number, y:number, w:number?, h:number?, r:number?, g:number?, b:number?, a:number?):nil -- Render in-game Panorama texture (.vtex_c)
+---@field filled_polygon fun(points:table[], r:number, g:number, b:number, a:number):nil -- Draw filled convex 2D polygon
+---@field polygon fun(points:table[], r:number, g:number, b:number, a:number, closed:boolean?, thick:number?):nil -- Draw polyline or polygon outline
+---@field glass_rect fun(x:number, y:number, w:number, h:number, passes:integer?, rounding:number?, borderCol:table?):nil -- Draw frosted glass panel with blur
+---@field blur fun(x:number, y:number, w:number, h:number, passes:integer?, rounding:number?):nil -- Dual-pass Gaussian blur filter
+---@field line_3d fun(a:Vector3, b:Vector3, r:number, g:number, b:number, a:number, thick:number?):nil -- World-space line
 ---@field text_3d fun(pos:Vector3, r:number, g:number, b:number, a:number, text:string):nil -- Text anchored to a world position
 render = {}
+
+---@class osNS
+---@field date fun(format:string?, time:number?):any -- Formatted date string or table if "*t"
+---@field time fun(tbl:table?):number -- Seconds since epoch or from table {year, month, day, ...}
+---@field clock fun():number -- CPU time in seconds
+os = {}
 
 ---@class storageNS
 ---@field set fun(key:string, value:any):nil -- Set a value in the current script's storage
