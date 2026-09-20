@@ -1,5 +1,5 @@
 -- =========================================================================
--- 14-icon-inspector.lua
+-- VITTLOCK Lua - Icon & Font Inspector
 -- Modern obsidian HUD with isolated badge tiles (no overlapping)
 -- =========================================================================
 
@@ -11,9 +11,9 @@ local tab = Menu.Create("Visuals", "", script_name, "Icons")
 -- Left Column: Layout and sizing controls
 local left_card = tab:Create("Display Settings", Enum.GroupSide.Left)
 local ui_enabled = left_card:Switch("Enabled", true)
-local ui_pos_x   = left_card:Slider("HUD X", 0, 1920, 60, "%.0f px")
-local ui_pos_y   = left_card:Slider("HUD Y", 0, 1080, 60, "%.0f px")
-local ui_size    = left_card:Slider("Icon Size", 12, 24, 16, "%.0f px")
+local ui_pos_x   = left_card:Slider("HUD X", 0, 1920, 60)
+local ui_pos_y   = left_card:Slider("HUD Y", 0, 1080, 60)
+local ui_size    = left_card:Slider("Icon Size", 10, 22, 14)
 local ui_glass   = left_card:Switch("Frosted Glass Background", true)
 
 -- Right Column: Categories and toggles
@@ -21,7 +21,7 @@ local right_card = tab:Create("Icon Modules", Enum.GroupSide.Right)
 local ui_show_fa        = right_card:Switch("FontAwesome Grid", true)
 local ui_show_geometric = right_card:Switch("Geometric Shapes (▶, ●, ★, ⚠)", true)
 local ui_show_arrows    = right_card:Switch("Directional Arrows (←, ↑, →, ↓)", true)
-local ui_show_cyrillic  = right_card:Switch("Cyrillic Strings", true)
+local ui_show_cyrillic  = right_card:Switch("Cyrillic Test (Russian Font Check)", false)
 
 -- Verified FontAwesome 5 Solid glyphs
 local fa_icons = {
@@ -58,19 +58,34 @@ local geo_shapes = {
 -- Directional arrows list
 local arrow_list = { "←", "↑", "→", "↓", "↖", "↗", "↘", "↙" }
 
+-- Universal value resolver (works across both legacy and modern widget bindings)
+local function get_slider_val(w, fallback)
+    if not w then return fallback end
+    local v = nil
+    if w.GetInt then v = w:GetInt() end
+    if v == nil and w.GetFloat then v = w:GetFloat() end
+    if v == nil and w.Get then
+        local g = w:Get()
+        if type(g) == "number" then v = g end
+    end
+    return v or fallback
+end
+
 callbacks.on_render(function()
     if not ui_enabled:GetBool() then return end
 
-    local base_x  = ui_pos_x:GetFloat()
-    local base_y  = ui_pos_y:GetFloat()
-    local icon_sz = ui_size:GetFloat()
-    local width   = 530.0
+    local base_x  = get_slider_val(ui_pos_x, 60.0)
+    local base_y  = get_slider_val(ui_pos_y, 60.0)
+    local icon_sz = get_slider_val(ui_size, 14.0)
+    if not icon_sz or icon_sz < 8 then icon_sz = 14.0 end
+
+    local width   = 540.0
     local padding = 16.0
     local cur_y   = base_y + 14.0
 
     -- Dynamic height computation based on active modules
     local total_h = 56.0
-    if ui_show_fa:GetBool()        then total_h = total_h + 185.0 end
+    if ui_show_fa:GetBool()        then total_h = total_h + 200.0 end
     if ui_show_geometric:GetBool() then total_h = total_h + 65.0  end
     if ui_show_arrows:GetBool()    then total_h = total_h + 60.0  end
     if ui_show_cyrillic:GetBool()  then total_h = total_h + 75.0  end
@@ -100,7 +115,7 @@ callbacks.on_render(function()
     render.line(base_x + padding, cur_y, base_x + width - padding, cur_y, 255, 255, 255, 20, 1.0)
     cur_y = cur_y + 10.0
 
-    -- 3. FontAwesome 6 Grid: Discrete isolated tile cards (No overlapping!)
+    -- 3. FontAwesome Grid: Discrete isolated badge tiles (Centered icon & label)
     if ui_show_fa:GetBool() then
         render.text(base_x + padding, cur_y, 140, 150, 170, 255, "FONTAWESOME ICONS (16 TILES)", 11)
         cur_y = cur_y + 16.0
@@ -110,7 +125,7 @@ callbacks.on_render(function()
         local gap_y = 6.0
         local avail_w = width - (padding * 2)
         local tile_w = math.floor((avail_w - (gap_x * (cols - 1))) / cols)
-        local tile_h = 32.0
+        local tile_h = 36.0
 
         for i, item in ipairs(fa_icons) do
             local col = (i - 1) % cols
@@ -122,13 +137,14 @@ callbacks.on_render(function()
             render.filled_rect(tx, ty, tile_w, tile_h, 20, 24, 34, 200, 6.0)
             render.rect(tx, ty, tile_w, tile_h, 255, 255, 255, 18, 1.0, 6.0)
 
-            -- Icon rendered on the left of tile
-            local icon_y = ty + ((tile_h - icon_sz) * 0.5)
-            render.text(tx + 8, icon_y, 0, 220, 255, 255, item.glyph, icon_sz, "fontawesome")
+            -- Icon rendered on the left, vertically centered
+            local icon_x = tx + 10.0
+            local icon_y = ty + math.floor((tile_h - icon_sz) * 0.5)
+            render.text(icon_x, icon_y, 0, 220, 255, 255, item.glyph, icon_sz, "fontawesome")
 
-            -- Label rendered on the right of tile
-            local label_x = tx + icon_sz + 14
-            local label_y = ty + ((tile_h - 12.0) * 0.5)
+            -- Label rendered on the right with guaranteed margin
+            local label_x = tx + icon_sz + 18.0
+            local label_y = ty + math.floor((tile_h - 12.0) * 0.5)
             render.text(label_x, label_y, 215, 220, 230, 255, item.name, 12)
         end
 
@@ -183,7 +199,7 @@ callbacks.on_render(function()
         cur_y = cur_y + arrow_chip_h + 12.0
     end
 
-    -- 6. Cyrillic Verification Card
+    -- 6. Cyrillic Font Verification (Disabled by default, toggle in menu to test)
     if ui_show_cyrillic:GetBool() then
         render.text(base_x + padding, cur_y, 140, 150, 170, 255, "CYRILLIC SCRIPT VERIFICATION", 11)
         cur_y = cur_y + 16.0
