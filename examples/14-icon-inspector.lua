@@ -10,11 +10,12 @@ local tab = Menu.Create("Visuals", "", script_name, "Icons")
 
 -- Left Column: Layout and sizing controls
 local left_card = tab:Create("Display Settings", Enum.GroupSide.Left)
-local ui_enabled = left_card:Switch("Enabled", true)
-local ui_pos_x   = left_card:Slider("HUD X", 0, 1920, 60)
-local ui_pos_y   = left_card:Slider("HUD Y", 0, 1080, 60)
-local ui_size    = left_card:Slider("Icon Size", 10, 22, 14)
-local ui_glass   = left_card:Switch("Frosted Glass Background", true)
+local ui_enabled    = left_card:Switch("Enabled", true)
+local ui_pos_x      = left_card:Slider("HUD X", 0, 1920, 60)
+local ui_pos_y      = left_card:Slider("HUD Y", 0, 1080, 60)
+local ui_size       = left_card:Slider("Icon Size", 10, 22, 14)
+local ui_glass      = left_card:Switch("Frosted Glass Background", true)
+local ui_show_clock = left_card:Switch("Show Clock Badge", true)
 
 -- Right Column: Categories and toggles
 local right_card = tab:Create("Icon Modules", Enum.GroupSide.Right)
@@ -100,16 +101,24 @@ callbacks.on_render(function()
     end
 
     -- 2. Header: Logo, Title & Time Badge
-    local time_str = os.date("%H:%M:%S")
     render.text(base_x + padding, cur_y + 1, 0, 220, 255, 255, "\xef\x81\x9b", 16, "fontawesome")
     render.text(base_x + padding + 24, cur_y + 1, 255, 255, 255, 255, "VITTLOCK ICON & GLYPH TESTER", 14)
 
-    local tw, th = render.measure_text(time_str, 12)
-    local pill_w = tw + 14
-    local pill_x = base_x + width - padding - pill_w
-    render.filled_rect(pill_x, cur_y, pill_w, 20, 24, 28, 38, 220, 4.0)
-    render.rect(pill_x, cur_y, pill_w, 20, 255, 255, 255, 20, 1.0, 4.0)
-    render.text(pill_x + 7, cur_y + 3, 175, 190, 215, 255, time_str, 12)
+    -- Live Clock Pill (Testing os.date) — completely bounded inside HUD
+    if ui_show_clock:GetBool() then
+        local time_str = os.date("%H:%M:%S")
+        local pill_w = 72.0
+        local pill_h = 20.0
+        local pill_x = base_x + width - padding - pill_w
+        render.filled_rect(pill_x, cur_y, pill_w, pill_h, 24, 28, 38, 220, 4.0)
+        render.rect(pill_x, cur_y, pill_w, pill_h, 255, 255, 255, 20, 1.0, 4.0)
+
+        local tw, th = render.measure_text(12, time_str)
+        if tw <= 0 or tw < 30 then tw = 52.0 end
+        local tx = pill_x + math.floor((pill_w - tw) * 0.5)
+        local ty = cur_y + math.floor((pill_h - 12.0) * 0.5)
+        render.text(tx, ty, 175, 190, 215, 255, time_str, 12)
+    end
 
     cur_y = cur_y + 26.0
     render.line(base_x + padding, cur_y, base_x + width - padding, cur_y, 255, 255, 255, 20, 1.0)
