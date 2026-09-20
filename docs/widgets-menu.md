@@ -194,129 +194,156 @@ Menu.SetColor(script, label, {r,g,b,a})
 
 All of these also accept the single-label form for cross-script discovery — e.g. `Menu.SetBool("Auto Shoot", true)`.
 
-### Legacy factories
+---
+
+## `Menu.Create` — Dynamic Multi-Tab & Multi-Card Architecture
+
+The modern `Menu.Create` API allows scripts to integrate seamlessly into cheat tabs (e.g. `"Aimbot"`, `"Visuals"`, `"Miscellaneous"`, `"Lua"`), register dedicated interactive sub-tabs with animated pill bars, and lay out widgets into deterministic two-column card panels.
+
+### 1. Declaring Mini-Tabs (`Menu.Create`)
 
 ```lua
-### `Menu.Create` — hierarchical category builder
-
-For scripts that integrate into Deadlock's category and section tabs:
-
-```lua
--- Declare or reference a hierarchy: (Category, Subcategory, Section, Tab, Subtab)
-Menu.Create("Miscellaneous", "", "Items Helper")
-local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
-
--- Switch with native Panorama image texture
-local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
-ui_aura:ToolTip("Casts Heroic Aura when allies are grouped up and an enemy is close.")
-
--- Gear sub-settings (nested popup inside the widget card)
-local ui_aura_gear = ui_aura:Gear("Settings")
-local ui_allies    = ui_aura_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
-local ui_range     = ui_aura_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
+Menu.Create(category, subcategory, scriptName, tabName, [sectionHeader])
 ```
 
-### Native Panorama textures & FontAwesome icons
+- **`category`** (`string`): Main navigation category (e.g. `"Aimbot"`, `"Visuals"`, `"Miscellaneous"`, `"Lua"`).
+- **`subcategory`** (`string`): Optional sub-category path (can be `""`).
+- **`scriptName`** (`string`): Owning script identifier (typically `__SCRIPT_NAME__` or `"PsyAbility"`).
+- **`tabName`** (`string`): The title displayed in the interactive mini-tab pill bar (e.g. `"Aim"`, `"Target"`, `"Visuals"`).
+- **`sectionHeader`** (`string`, optional): Optional header label if creating a direct section.
 
-You can pass an icon or texture path directly to `:Switch(label, default, [iconOrImage])`, `:Icon(glyph)`, or `:Image(path)`:
-- **Panorama `.vtex_c` / `.vtex` textures**: e.g. `"panorama/images/items/weapon/heroic_aura_psd.vtex_c"` or `"panorama/images/items/spirit/arctic_blast_psd.vtex_c"`.
-  - The engine loads the asset directly from Deadlock's Panorama resource manager.
-  - Automatically normalizes `.vtex_c` and `.vtex`.
-  - Performs dynamic UV cropping (`m_flMaxU`, `m_flMaxV`) to remove padding from 200x200 icons inside 256x256 surfaces.
-  - Features real-time BC3 YCoCg-to-RGBA8 decoding for 100% accurate color fidelity.
-- **FontAwesome glyphs**: e.g. `FontAwesomeIcon.Cog` or standard glyph strings.
+When multiple tabs are registered for the same script or category, Lumin automatically renders an interactive, animated horizontal pill bar at the top of the window.
 
-### Chained widget modifiers
+```lua
+-- Example: Registering an "Aim" mini-tab under the Aimbot category
+local aim_tab = Menu.Create("Aimbot", "", "PsyAbility", "Aim")
+```
+
+Returns a **`TabHandle`**.
+
+---
+
+### 2. Explicit Column Routing via `Enum.GroupSide`
+
+To place widgets into clean left and right cards without ambiguity, use `Enum.GroupSide`:
+
+| Constant | Value | Layout Behavior |
+|---|---|---|
+| `Enum.GroupSide.Left` | `0` | Forces card and all child widgets into the **Left** column |
+| `Enum.GroupSide.Right` | `1` | Forces card and all child widgets into the **Right** column |
+
+Call `:Create(groupName, [side])`, `:Section(groupName, [side])`, or `:Card(groupName, [side])` on the `TabHandle`:
+
+```lua
+-- Left Column: Main toggle, keybind, and aiming mode
+local left_card = aim_tab:Create("Main Settings", Enum.GroupSide.Left)
+left_card:Switch("Enabled", true)
+left_card:Keybind("Aim Key", 0x01)
+left_card:Combo("Target Selection", {"Distance", "Lowest HP", "FOV"}, 0)
+
+-- Right Column: Distance sliders, bones, and lead prediction
+local right_card = aim_tab:Create("Target Settings", Enum.GroupSide.Right)
+right_card:Slider("Min Distance", 0.0, 50.0, 0.0, "%.0fm")
+right_card:Slider("Max Distance", 10.0, 150.0, 70.0, "%.0fm")
+right_card:Combo("Aim Bone", {"Head", "Neck", "Spine", "Pelvis"}, 0)
+```
+
+#### Card Header Rendering
+Every card created through `:Create()`, `:Section()`, or `:Card()` automatically renders its uppercase title banner at the top of the container (including the very first card `c == 0`), giving each group clear separation.
+
+#### Extended Scroll Clearance
+Lumin provides `s_(45.f)` trailing vertical clearance at the base of scrolling card containers. This ensures deep option trees, multi-combos, and prediction sliders can be scrolled comfortably to the bottom without getting clipped against the window footer.
+
+---
+
+### 3. Modal `:Gear()` Sub-Settings Popups
+
+Rather than cluttering main cards with nested checkboxes or secondary tuning parameters, attach a modal settings gear popup directly to any toggle switch or slider:
+
+```lua
+local pred_toggle = right_card:Switch("Prediction", true)
+
+-- Attach a modal settings popup to the switch
+local pred_gear = pred_toggle:Gear("Prediction Settings")
+pred_gear:Slider("Projectile Speed", 1000.0, 15000.0, 5000.0, "%.0f")
+pred_gear:Slider("Prediction Scale", 0.1, 2.0, 1.0, "%.2fx")
+pred_gear:Slider("Max Lead", 0.1, 5.0, 1.5, "%.1fs")
+pred_gear:Switch("Use Acceleration", true)
+pred_gear:Switch("Wall Limit Prediction", false)
+```
+
+#### How `:Gear()` Works Internally
+1. Calling `w:Gear(label)` marks the parent widget with `hasGear = true` and returns a scoped builder handle tagged with `parentGear = label`.
+2. Lumin renders an animated mechanical gear icon button next to the parent widget.
+3. Clicking the gear button toggles an isolated modal popup (`##gear_popup_<id>`).
+4. All child widgets attached to the gear handle render cleanly inside the popup modal without expanding the parent card height.
+
+---
+
+### 4. Native Panorama Textures & Icons
+
+You can pass in-game Panorama image texture paths directly to `:Switch(label, default, [iconOrImage])`, `:Icon(glyph)`, or `:Image(path)`:
+
+```lua
+local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
+ui_aura:ToolTip("Casts Heroic Aura when allies are grouped up and an enemy is close.")
+```
+
+- **Automatic Format Resolution**: Supports both `.vtex_c` and `.vtex` extensions seamlessly.
+- **Dynamic UV Cropping**: Automatically extracts `m_flMaxU`/`m_flMaxV` from `CSource2UITexture` to crop padding on 200x200 canvas textures.
+- **BC3 YCoCg Decoding**: Real-time decompression of DXT5 YCoCg textures into crisp 32-bit RGBA8 color.
+- **FontAwesome Glyphs**: Pass FontAwesome glyph identifiers or standard strings.
+
+---
+
+### 5. Chained Widget Modifiers
 
 | Method | Description |
 |---|---|
 | `w:ToolTip(text)` | Tooltip hover on the widget row |
-| `w:Gear(label)` | Returns a parent builder creating a settings gear popup |
-| `w:Slider(label, min, max, def, fmt)` | Formatted slider (e.g. `"%d%%"`, `"%d m"`) |
+| `w:Gear(label)` | Returns a child builder creating a modal settings gear popup |
+| `w:Slider(label, min, max, def, fmt)` | Formatted slider (e.g. `"%d%%"`, `"%d m"`, `"%.1fs"`) |
 | `w:Visible(bool)` | Dynamically hide or show the widget |
 | `w:Depend(fn)` | Visibility predicate function |
-| `w:SetCallback(fn, [callImmediately])` | Immediate or on-edit reactive callback; passes `w` to `fn(w)` |
+| `w:SetCallback(fn, [callImmediately])` | Reactive callback; passes `w` to `fn(w)` on change (or on load if true) |
 | `w:Icon(fa_glyph)` | FontAwesome icon |
 | `w:Image(vtex_path)` | Panorama texture icon |
 
 #### Reactive Callback Example (`SetCallback`)
 
-The callback function receives the widget handle directly (`fn(w)`), making dynamic visibility switches clean and self-contained without forward-declaring local variables:
-
 ```lua
-local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
-local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
-local ui_gear = ui_aura:Gear("Settings")
-local ui_allies = ui_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
-local ui_radius = ui_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
+local pred_toggle = right_card:Switch("Prediction", true)
+local pred_gear   = pred_toggle:Gear("Prediction Settings")
+local proj_speed  = pred_gear:Slider("Projectile Speed", 1000.0, 15000.0, 5000.0, "%.0f")
 
--- Reacts when the toggle is clicked; passing `true` initializes visibility on load
-ui_aura:SetCallback(function(w)
-    local state = w:Get()
-    ui_allies:Visible(state)
-    ui_radius:Visible(state)
+-- React when the toggle changes; passing true syncs initial visibility immediately on script load
+pred_toggle:SetCallback(function(w)
+    local active = w:Get()
+    proj_speed:Visible(active)
 end, true)
 ```
 
 ---
 
-## Dedicated Script Sub-Tabs & Multi-Card Layouts
+### 6. Hot-Reload Script Cleanup Guarantee
 
-Scripts can register their own dedicated sub-tab in the **Lua** tab with custom icons and multi-column card containers directly from Lua — with zero C++ modifications.
+When reloading a script (via hot-reload file-watch or in-menu Reload):
+- `CLuaEngine::ReloadSingleScript` calls `m_Menu.RemoveScript(scriptName)`.
+- All registered widgets, categories, mini-tabs, and card groups are wiped before re-parsing the Lua script.
+- Prevents label collisions, orphan settings, and ghost widgets when refactoring UI layouts.
 
-### 1. `Menu.CreateSubTab([script_name], title, [icon])`
+---
 
-Registers a top-level subtab header button next to the default `[Scripts]` manager.
-
-```lua
-local script_name = __SCRIPT_NAME__ or "MyScript"
-local subtab = Menu.CreateSubTab(script_name, "Lil Helpers", "combat")
-```
-
-- `script_name` (optional): Name of the script. If omitted, defaults to `__SCRIPT_NAME__`.
-- `title`: Display title in the header pill bar (e.g. `"Lil Helpers"`, `"Items Helper"`, `"Counterspell"`).
-- `icon`: FontAwesome glyph or Lumin icon identifier:
-  - `"combat"` — crossed swords / weapon
-  - `"loot"` — treasure chest / items
-  - `"polish"` — shield / defense
-  - `"match"` — crosshair / aim
-  - `"player"` — hero pawn
-  - `"world"` — map / environment
-  - `"folder"` — scripts folder
-
-### 2. Cards & Multi-Column Layout (`:Section` / `:Card`)
-
-Call `:Section(title)` or `:Card(title)` on the sub-tab handle to divide your controls into distinct card sections:
-
-```lua
--- Left Column: Card 1
-local left_card = subtab:Section("Lil Helpers & Targets")
-local enabled   = left_card:Switch("Auto Lil Helpers", true)
-local targets   = left_card:MultiCombo("Targets", {"Heroes", "Troopers", "Bosses"}, {"Heroes"})
-local range     = left_card:Slider("Range", 5.0, 80.0, 30.0, "%.1fm")
-
--- Right Column: Card 2
-local right_card = subtab:Section("Visuals & ESP")
-local trail      = right_card:Switch("Target Trail", true)
-local trail_time = right_card:Slider("Trail Delay", 0.05, 1.0, 0.28, "%.2fs")
-local esp_color  = right_card:ColorPicker("ESP Color", Color(120, 220, 255, 255))
-```
-
-#### Automatic Multi-Column Split
-- **>= 2 Sections**: The engine automatically renders an elegant two-column layout (`left_card` in Left column, subsequent cards grouped in Right column with clean section headings).
-- **1 Section**: Renders a full-width centered card container.
-- **Auto Manager Filter**: Scripts with dedicated sub-tabs are automatically hidden from the generic Scripts manager card to avoid UI clutter.
-
-### 3. MultiCombo Options (`:MultiCombo`)
+### 7. MultiCombo Options (`:MultiCombo`)
 
 Multi-select dropdown with bitmask and per-option query:
 
 ```lua
-local types = right_card:MultiCombo("Debuffs", { "Disarm", "Root", "Slow", "Silence" }, { "Disarm", "Root" })
+local types = right_card:MultiCombo("Target Filters", { "Heroes", "Troopers", "Bosses" }, { "Heroes" })
 
 -- Check if a specific option is checked:
-if types:Get("Disarm") then
-    -- Disarm is selected
+if types:Get("Heroes") then
+    -- Target heroes
 end
 
 -- Read raw bitmask:

@@ -127,6 +127,26 @@ Payload accessor `e`:
 
 ⚠️ The event payload `e` is **only valid during the callback**. Copy values out into local variables instead of saving `e`.
 
+### `on_entity_create` & `on_entity_destroy`
+
+Fires when an entity is spawned into or removed from the world. Passes the raw integer `handle`:
+
+```lua
+callbacks.on_entity_create(function(handle)
+    -- Resolve raw handle into a fluent entity wrapper
+    local ent = entity_list.by_handle(handle)
+    if ent and ent:valid() then
+        if ent:is_player() then
+            print("Player spawned:", ent:get_name(), "Team:", ent.m_iTeamNum)
+        end
+    end
+end)
+
+callbacks.on_entity_destroy(function(handle)
+    -- Clean up tracked caches for this entity handle
+end)
+```
+
 ### Not dispatched / partial
 
 - `on_script_unloaded` — declared, never dispatched. Any subscription will simply never fire. Future work.

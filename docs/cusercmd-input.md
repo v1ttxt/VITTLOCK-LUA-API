@@ -72,6 +72,42 @@ end)
 
 ---
 
+## Silent Aim & Position Helpers (`can_psilent_at_pos` / `set_psilent_at_pos`)
+
+`CUserCmd` provides built-in pSilent (perfect silent aim) helpers that compute camera view angle offsets to hit a world-space coordinate (e.g. predicted hero bones or projectile target points) without snapping the local player's visual screen.
+
+| Method | Signature | Returns | Description |
+|---|---|---|---|
+| `cmd:can_psilent_at_pos(pos)` | `Vector3` → `boolean` | `bool` | Checks if `pos` is within the cheat's configured pSilent FOV / reach threshold |
+| `cmd:set_psilent_at_pos(pos)` | `Vector3` → `boolean` | `bool` | Calculates required silent aim angles and applies them to the user command. Returns `true` on success. |
+
+Both camelCase (`cmd:CanPsilentAtPos`, `cmd:SetPsilentAtPos`) and snake_case (`cmd:can_psilent_at_pos`, `cmd:set_psilent_at_pos`) are supported.
+
+### Usage Example: Weapon / Ability Silent Aim
+
+```lua
+callbacks.on_pre_createmove(function(cmd)
+    if not enabled:get_bool() then return end
+
+    local target = get_best_enemy_target()
+    if not target then return end
+
+    local aim_pos = target:get_bone_position("head")
+    if not aim_pos then return end
+
+    -- Check if target position is within pSilent reach
+    if cmd:can_psilent_at_pos(aim_pos) then
+        -- Apply silent aim angles to outgoing command
+        if cmd:set_psilent_at_pos(aim_pos) then
+            -- Tap attack to fire silently this tick
+            cmd:AddButtonState(InputBitMask_t.IN_ATTACK)
+        end
+    end
+end)
+```
+
+---
+
 ## Buttons
 
 | Method / Property | Description |

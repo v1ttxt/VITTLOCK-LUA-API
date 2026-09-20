@@ -24,6 +24,10 @@
 ---@field add_buttonstate1 fun(bit:integer):nil -- Mutate button word 0 (Hold)
 ---@field add_buttonstate2 fun(bit:integer):nil -- Mutate button word 1
 ---@field add_buttonstate3 fun(bit:integer):nil -- Mutate button word 2
+---@field can_psilent_at_pos fun(pos:Vector3):boolean -- Check if target position can be reached with pSilent
+---@field set_psilent_at_pos fun(pos:Vector3):boolean -- Apply silent aim angle offset toward target position
+---@field CanPsilentAtPos fun(pos:Vector3):boolean -- Check if target position can be reached with pSilent
+---@field SetPsilentAtPos fun(pos:Vector3):boolean -- Apply silent aim angle offset toward target position
 ---@field buttonstate1 integer -- Button word 0 bitmask
 ---@field buttonstate2 integer -- Button word 1 bitmask
 ---@field buttonstate3 integer -- Button word 2 bitmask
@@ -31,6 +35,14 @@
 ---@field button_state1 integer -- Button word 1 bitmask
 ---@field button_state2 integer -- Button word 2 bitmask
 CUserCmd = {}
+
+---@class EnumGroupSideNS
+---@field Left integer -- 0 (force card into left column)
+---@field Right integer -- 1 (force card into right column)
+
+---@class EnumNS
+---@field GroupSide EnumGroupSideNS
+Enum = {}
 
 ---@class DebuggerNS
 ---@field GetLogs fun():string -- Full log buffer text
@@ -129,7 +141,7 @@ ImGui = {}
 InputBitMask_t = {}
 
 ---@class MenuNS
----@field Create fun(tab:string, subtab:string?, section:string?, ...):MenuBuilder -- Fluent menu / category builder
+---@field Create fun(tab:string, subtab:string?, scriptName:string?, tabName:string?, sectionHeader:string?):TabHandle|MenuBuilder -- Fluent menu / mini-tab category builder
 ---@field CreateSubTab fun(script_or_title:string, title_or_icon:string?, icon:string?):MenuBuilder -- Register a dedicated script sub-tab in Lua tab
 ---@field Switch fun(tab:string?, subtab:string?, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
 ---@field SliderInt fun(tab:string?, subtab:string?, label:string, min:integer, max:integer, default:integer?):WidgetHandle
@@ -376,6 +388,22 @@ ui = {}
 ---@field get_aoe_radius fun():number -- AoE radius
 ---@field cast fun(cmd:CUserCmd):boolean -- Cast via command buttons
 
+---@class TabHandle
+---@field name string -- Script name
+---@field tab string -- Mini-tab name
+---@field Create fun(self:TabHandle, grp:string, side:integer?):MenuBuilder -- Create a card container with optional Enum.GroupSide
+---@field create fun(self:TabHandle, grp:string, side:integer?):MenuBuilder
+---@field Section fun(self:TabHandle, grp:string, side:integer?):MenuBuilder -- Create a card container with optional Enum.GroupSide
+---@field section fun(self:TabHandle, grp:string, side:integer?):MenuBuilder
+---@field Card fun(self:TabHandle, grp:string, side:integer?):MenuBuilder -- Create a card container with optional Enum.GroupSide
+---@field card fun(self:TabHandle, grp:string, side:integer?):MenuBuilder
+---@field Switch fun(self:TabHandle, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
+---@field Slider fun(self:TabHandle, label:string, min:number, max:number, default:number?, fmt:string?):WidgetHandle
+---@field Combo fun(self:TabHandle, label:string, options:string[], default:integer?):WidgetHandle
+---@field MultiCombo fun(self:TabHandle, label:string, options:string[], defaultMaskOrList:any?):WidgetHandle
+---@field Keybind fun(self:TabHandle, label:string, defaultVK:integer?):WidgetHandle
+---@field Color fun(self:TabHandle, label:string, defaultColor:table?):WidgetHandle
+
 ---@class MenuBuilder
 ---@field Switch fun(self:MenuBuilder, label:string, default:boolean?, iconOrImage:string?):WidgetHandle
 ---@field Slider fun(self:MenuBuilder, label:string, min:number, max:number, default:number?, fmt:string?):WidgetHandle
@@ -389,10 +417,14 @@ ui = {}
 ---@field Button fun(self:MenuBuilder, label:string, fn:function):WidgetHandle
 ---@field Text fun(self:MenuBuilder, label:string):WidgetHandle
 ---@field Separator fun(self:MenuBuilder):nil
----@field Section fun(self:MenuBuilder, name:string):MenuBuilder -- Declares a new card section / multi-column card
----@field Card fun(self:MenuBuilder, name:string):MenuBuilder -- Alias for Section
----@field CreateSection fun(self:MenuBuilder, name:string):MenuBuilder
----@field CreateCard fun(self:MenuBuilder, name:string):MenuBuilder
+---@field Section fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder -- Declares a new card section / multi-column card
+---@field section fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
+---@field Card fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder -- Alias for Section
+---@field card fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
+---@field Create fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
+---@field create fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
+---@field CreateSection fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
+---@field CreateCard fun(self:MenuBuilder, name:string, side:integer?):MenuBuilder
 
 ---@class WidgetHandle
 ---@field get fun(self:WidgetHandle, optOrIndex:any?):any

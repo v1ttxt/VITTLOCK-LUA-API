@@ -8,42 +8,57 @@ This repository is the canonical documentation, examples, and reference for the 
 
 ## What's new
 
-**100% Dynamic Lua Sub-Tabs & Multi-Card UI (Zero C++ Decoupled)**
-- **`Menu.CreateSubTab([script], title, icon)`** — create dedicated, top-level script sub-tabs in the **Lua** tab directly from Lua code:
+**Dynamic Multi-Tab Architecture & Explicit Side Routing (`Menu.Create`)**
+- **`Menu.Create(category, sub, scriptName, tabName, [sectionHeader])`** — create dedicated, interactive mini-tabs in Lumin with an animated pill bar:
   ```lua
-  local subtab = Menu.CreateSubTab("Lil Helpers", "combat")
-  
-  -- Left Column Card
-  local left = subtab:Section("Combat & Targets")
-  left:Switch("Auto Combo", true)
-  
-  -- Right Column Card
-  local right = subtab:Section("Visuals & ESP")
-  right:ColorPicker("ESP Color", Color(120, 220, 255, 255))
-  ```
-- **Automatic 2-Column Card Splitting** — calling `:Section(name)` or `:Card(name)` automatically groups widgets and renders side-by-side card containers with zero layout boilerplate.
-- **Zero C++ Hardcoding** — all hardcoded script tabs have been eliminated from C++. Any script dynamically defines its subtab, icon, and cards at runtime.
-- **Auto Manager Filtering** — scripts registering a subtab are automatically filtered from the generic Scripts manager card.
+  -- Bind dedicated script tab under "Aimbot" category
+  local aim_tab = Menu.Create("Aimbot", "", "PsyAbility", "Aim")
 
-**Menu & UI Engine**
-- **`Menu.Create` & Fluent Chaining** — build rich multi-level category and section structures with nested gear popups:
+  -- Explicit column routing via Enum.GroupSide (Left = 0, Right = 1)
+  local left_card  = aim_tab:Create("Main Settings", Enum.GroupSide.Left)
+  local right_card = aim_tab:Create("Target Settings", Enum.GroupSide.Right)
+
+  left_card:Switch("Enabled", true)
+  right_card:Slider("Max Distance", 10.0, 150.0, 70.0, "%.0fm")
+  ```
+- **`Enum.GroupSide` Deterministic 2-Column Placement** — pass `Enum.GroupSide.Left` (`0`) or `Enum.GroupSide.Right` (`1`) to `:Create()`, `:Section()`, or `:Card()`. Guarantees widgets land in the exact column intended.
+- **Card Headers for All Groups** — card titles render on every section (including `c == 0`), giving clean visual headers like `"Target Settings"`.
+- **Extended Scroll Clearance** — trailing `s_(45.f)` padding added to Lumin card containers so you can scroll all the way down to bottom widgets with zero cutoff.
+- **Hot-Reload Clean Slate** — `CLuaEngine::ReloadSingleScript` purges registered widgets, subtabs, and categories via `m_Menu.RemoveScript()` prior to re-execution, preventing widget duplication or ghost state across edits.
+
+**Modal `:Gear()` Sub-Settings Popups**
+- **Mechanical Gear Popups (`w:Gear(label)`)** — attach modal sub-settings to any switch or slider:
   ```lua
   local weapon = Menu.Create("Miscellaneous", "", "Items Helper", "Main", "Weapon")
   local ui_aura = weapon:Switch("Auto Heroic Aura", true, "panorama/images/items/weapon/heroic_aura_psd.vtex_c")
   ui_aura:ToolTip("Casts Heroic Aura when allies are grouped up and an enemy is close.")
 
-  local ui_gear   = ui_aura:Gear("Settings") -- creates a nested popup sub-menu
+  -- Returns a scoped builder handle; GUI draws an animated mechanical gear button next to the toggle
+  local ui_gear   = ui_aura:Gear("Settings")
   local ui_allies = ui_gear:Slider("Allies Nearby", 1, 5, 2, "%d")
   local ui_radius = ui_gear:Slider("Enemy Radius", 5, 60, 25, "%d m")
   ```
-- **Native Panorama Icons (`.vtex_c` / `.vtex`)** — pass in-game Panorama image paths directly to `:Switch` or `:Image`:
-  - Automatically resolved and cached through Deadlock's Panorama resource manager.
-  - Supports both compiled `.vtex_c` and logical `.vtex` seamlessly.
-  - **Dynamic UV cropping**: automatically extracts `m_flMaxU`/`m_flMaxV` from `CSource2UITexture` to crop out padding on 200x200 canvas textures.
-  - **Real-time BC3 YCoCg decoding**: on-the-fly conversion of DXT5 YCoCg compressed textures into crisp, 100% accurate 32-bit RGBA8 with solid alpha.
-- **`m:multi_combo("Flags", {"A","B","C"})`** — bitmask multi-select; `w:get_mask()`, `w:set_mask(bits)`, `w:has(i)`, `w:set_option(i, on)`.
-- **`w:depend(fn)`** & **`w:Visible(bool)`** — dynamic visibility control.
-- **`w:SetCallback(fn, [callNow])`** — reactive widget change triggers passing the widget handle directly (`function(w) w:Get() ... end`), with optional immediate invocation for UI setup.
+- Clicking the gear button opens an isolated modal popup (`##gear_popup_...`) holding all child widgets, keeping your primary cards clean and compact.
+
+**User Command Silent Aim & Input Control**
+- **`cmd:can_psilent_at_pos(pos)`** & **`cmd:set_psilent_at_pos(pos)`** — perform silent aim validation and angle calculation directly on `CUserCmd`:
+  ```lua
+  callbacks.on_pre_createmove(function(cmd)
+      local target_pos = predict_target_position()
+      if cmd:can_psilent_at_pos(target_pos) then
+          cmd:set_psilent_at_pos(target_pos)
+          cmd:AddButtonState(InputBitMask_t.IN_ATTACK)
+      end
+  end)
+  ```
+- **Direct Button Word Mutation**:
+  - `cmd:add_buttonstate1(mask)`, `cmd:add_buttonstate2(mask)`, `cmd:add_buttonstate3(mask)`
+  - `cmd:TapButton(mask)` — quick single-tick button tap (press + release).
+  - `cmd:HasButtonState(mask)`, `cmd:HoldButton(mask)`, `cmd:ClearButton(mask)`
+- **Post-Prediction Hook Parity**:
+  - `callbacks.on_post_createmove(id, fn)` runs after user command finalization and engine prediction.
+- **Thread-Safe Event Pipeline**:
+  - Modifier events (`on_add_modifier`, `on_remove_modifier`) and entity discovery driven under cache locks.
 
 **Entity & Pawn Inspection**
 - **Health & Alive Queries**:
@@ -72,14 +87,6 @@ This repository is the canonical documentation, examples, and reference for the 
 - **Game Rules & Network**:
   - `game_rules.game_time()` — reads server game clock (`Engine.GetCurTime()`).
   - `net_channel.latency()` — returns estimated round-trip latency in seconds.
-
-**User Command & Input Control**
-- **Direct Button Word Mutation**:
-  - `cmd:add_buttonstate1(mask)`, `cmd:add_buttonstate2(mask)`, `cmd:add_buttonstate3(mask)`
-  - `cmd:TapButton(mask)` — quick single-tick button tap (press + release).
-  - `cmd:HasButtonState(mask)`, `cmd:HoldButton(mask)`, `cmd:ClearButton(mask)`
-- **Thread-Safe Event Pipeline**:
-  - Modifier events (`on_add_modifier`, `on_remove_modifier`) driven by entity cache, completely eliminating match loading crashes.
 
 **Engine access & Convars**
 - **`cvar`** — find any console variable by name and read its value directly (typed by the engine's own convar type: int/float/bool/string), or write it through the console path:

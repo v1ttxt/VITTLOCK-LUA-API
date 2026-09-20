@@ -221,8 +221,10 @@ Find existing menu widgets across any script and dynamically get or set their va
 
 | Function / Method | Args | Description |
 |---|---|---|
+| `Menu.Create(cat, sub, script, tab, [sec])` | `(string, string, string, string, string?)` | Creates an interactive mini-tab with animated pill bar; returns `TabHandle` |
+| `tab:Create(grp, [side])` / `:Section` / `:Card` | `(string, integer?)` | Creates card container; pass `Enum.GroupSide.Left` (0) or `Right` (1) |
 | `Menu.CreateSubTab([script], title, [icon])` | `(string?, string, string?)` | Registers a dedicated script sub-tab in the Lua menu |
-| `subtab:Section(name)` / `:Card(name)` | `(string)` | Declares a new card container; auto-splits into two-column layout |
+| `w:Gear(label)` | `(string)` | Attaches modal settings gear popup button; returns child `MenuBuilder` |
 | `Menu.Find(script, label)` or `Menu.Find(label)` | `(string, string)` or `(string)` | Returns a reactive widget handle for the given widget |
 | `Menu.Get(script, label)` or `Menu.Get(label)` | `(string, string)` or `(string)` | Read any widget's current value |
 | `Menu.Set(script, label, val)` or `Menu.Set(label, val)` | `(string, string, any)` or `(string, any)` | Set any widget's value (bool, int, float, string, color table) |
@@ -517,6 +519,8 @@ Passed to `on_pre_createmove(cmd)` and `on_post_createmove(cmd)`. Mutating it in
 | `cmd:ClearButton(bit)` | Alias of `RemoveButtonState` |
 | `cmd:PressButton(bit)` | Press this tick only |
 | `cmd:TapButton(bit)` | Quick tap (press + release) |
+| `cmd:can_psilent_at_pos(pos)` | Check if target pos is within pSilent reach |
+| `cmd:set_psilent_at_pos(pos)` | Compute & apply silent aim angles toward pos |
 | `cmd:add_buttonstate1(bit)` | Mutate button word 0 (Hold) |
 | `cmd:add_buttonstate2(bit)` | Mutate button word 1 |
 | `cmd:add_buttonstate3(bit)` | Mutate button word 2 |
