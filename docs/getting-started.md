@@ -104,4 +104,5 @@ Callbacks run inside the game's frame. Keep them light:
 - [Callbacks](callbacks.md), [Menu](menu.md), [Render](render.md): the three things almost every script uses.
 - [Entities](entities.md): heroes, abilities, items, modifiers and networked fields.
 - [User command](usercmd.md) and [Input](input.md): acting on the game.
+- [HERO_LIB](hero-lib.md): ready-made hero helpers (status checks, casting, target selection, prediction).
 - The [examples](../examples) folder: complete scripts you can copy and change.

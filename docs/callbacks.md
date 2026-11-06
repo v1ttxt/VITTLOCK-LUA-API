@@ -433,6 +433,8 @@ Fire before and after each step of the game's frame (the frame stages), on the g
 
 Every `.lua` file under `C:\VITTLOCK\scripts\v2\` (subfolders included) is loaded as a script. Files are sorted by file name, ignoring the folder they are in. Names that start with a character other than a letter or digit (`_init.lua`, `!lib.lua`) come first, then the rest, case-insensitively. When two files have the same name, the full path decides.
 
+The built-in [`HERO_LIB`](hero-lib.md) runs before all of them, so it is available at the top level of every script. It shows in the **Lua** tab as `HERO_LIB` with its own log.
+
 All scripts share one global environment. A global set by one script is visible to every script that runs after it, and `_G` is that shared environment. Declare everything `local` unless you mean to share it. When one script needs another's globals at startup, do that setup in [`on_scripts_loaded`](#on_scripts_loaded).
 
 ### Reloads
@@ -442,7 +444,7 @@ A **full reload** happens when the game starts, after a map change, and when you
 - removes every handler of every script,
 - creates a fresh shared environment (every global is gone) and clears the `require` cache,
 - clears [`global_ctx`](storage.md#global_ctx),
-- loads every script again in order, then fires `on_scripts_loaded`.
+- loads `HERO_LIB`, then every script again in order, then fires `on_scripts_loaded`.
 
 A **single-script reload**, for example when hot reload sees that you saved the file, removes only that script's handlers and runs the file again. The shared environment, other scripts' globals, the `require` cache and `global_ctx` all stay, so globals the script set during its previous run still exist. `on_scripts_loaded` doesn't fire.
 
