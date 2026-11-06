@@ -1,136 +1,146 @@
-# `storage`
+# Storage
 
-A per-script in-memory key-value store. Cheap and accessible from any callback — but **not persisted across DLL restart**. For persistent state use a `switch/slider_*` widget, which auto-saves into the cheat's settings JSON.
+Two global tables hold data outside your script's locals:
 
----
+- [`db`](#db): a persistent database, saved to disk. It survives script reloads and game restarts. Use it for anything you want to remember next session (counters, positions, your own settings).
+- [`global_ctx`](#global_ctx): plain values shared by every script for the current session only. Use it to pass flags or numbers between scripts.
 
-## API
+Menu widget values are saved on their own; you don't need either table for them. See [menu](menu.md).
 
-| Function | Returns | Description |
-|---|---|---|
-| `storage.set(key, value)` | nil | Store any Lua value under the key for the current script |
-| `storage.get(key)` | value or nil | Read back what you stored; `nil` if unset |
-| `storage.clear()` | nil | Wipe all keys for the current script |
+## db
 
-The "current script" identifier is taken from `__SCRIPT_NAME__`, so each script has its own bucket. Cross-script reads aren't supported by these helpers — use `Menu.Find` or store through explicit globals if you must.
-
----
-
-## Implementation note
-
-Internally:
+`db` is the root of the database, a [`db_table`](#db_table). There is one database for all scripts, so put your data under a key of its own to avoid clashing with other scripts.
 
 ```lua
--- inside the engine bootstrap injected by `L.script("__STORAGE__ = __STORAGE__ or {}")`
-__STORAGE__[currentScript] = bucket   -- a Lua table
-```
-
-`storage.set/get/clear` index into `__STORAGE__[currentScript]` with a string key. The value can be any Lua value (table, function, userdata, thread). Reference cycle collectors run on LuaJIT's normal GC — if you store a reference to something that references the storage back, expect to keep it alive.
-
----
-
-## Examples
-
-### Cumulative counter
-
-```lua
-m:button("Reset hits", function() storage.set("hits", 0) end)
-
-callbacks.on_bullet_create(function(b)
-    if b.shooter_handle == Engine.GetLocalPlayerHandle() then
-        storage.set("hits", (storage.get("hits") or 0) + 1)
-    end
-end)
-
-callbacks.on_render(function()
-    render.text(30, 30, 1, 1, 1, 1, "hits: " .. (storage.get("hits") or 0))
-end)
-```
-
-### Per-enemy memory
-
-```lua
-local seen = {}  -- store a sub-table per script run
-local function enemyKey(h)
-    return string.format("ent_%d", h)
+-- Counts how many times this script has loaded, across sessions.
+local store = db.my_script
+if not store then
+    db.my_script = { runs = 0 }
+    store = db.my_script            -- read it back: this is the live node
 end
-
-callbacks.on_entity_create(function(h)
-    if Engine.IsPlayer(h) then
-        seen[h] = true
-        storage.set(enemyKey(h), { first_seen = Engine.GetCurTime(), hits = 0 })
-    end
-end)
-
-callbacks.on_bullet_create(function(b)
-    local s = storage.get(enemyKey(b.shooter_handle))
-    if s then
-        s.hits = (s.hits or 0) + 1
-        storage.set(enemyKey(b.shooter_handle), s)
-    end
-end)
+store.runs = (store.runs or 0) + 1
+print("loaded " .. math.tointeger(store.runs) .. " times")
 ```
 
-### Read-from-mid-tick
+### When it is saved
+
+The database is loaded from `C:\VITTLOCK\scripts\v2\db.json` once, when VITTLOCK starts. Changes are kept in memory and written to that file:
+
+- every 5 minutes, if anything changed,
+- before every full script reload (map change, reload from the menu),
+- when the config is saved,
+- when VITTLOCK unloads.
+
+If the game crashes, changes since the last save are lost. Script reloads don't touch the database's contents.
+
+If `db.json` can't be read (for example after a bad hand edit), the database starts empty and the file is overwritten at the next save.
+
+## db_table
+
+A node of the database. `db` is one; every nested table you read from it is another. Use it like a Lua table.
+
+### Reading: `node.key` / `node[key]`
+
+Returns the stored value, or `nil` when the key isn't there. A nested table comes back as a `db_table` that is a live view: writing to it writes to the database.
 
 ```lua
-callbacks.on_pre_createmove(function(cmd)
-    local pending = storage.get("parry_pending")
-    if pending and ImGui.GetTime() >= pending then
-        cmd:AddButtonState(InputBitMask_t.IN_ABILITY_HELD)
-        storage.set("parry_pending", nil)
-    end
-end)
+db.settings = { volume = 5 }
+db.settings.volume = 7          -- changes the stored value
+print(db.settings.volume)       -- 7.0
 ```
 
-### Multivariate
+### Writing: `node.key = value`
+
+Stores `value` under `key`. Assigning `nil` removes the key.
+
+| Value type | Stored as |
+|---|---|
+| `boolean`, `string` | the same |
+| `number` | a single-precision float (about 7 significant digits) |
+| `Vector`, `Vec2`, `Color` | the same type |
+| `table` | a copy, as a nested node; entries with unsupported keys or values are left out |
+| `db_table` | a copy of that node |
+| anything else (`Angle`, functions, entities, ...) | not stored; the assignment is ignored and the old value stays |
+
+Notes:
+- **Numbers lose precision.** They are stored as single-precision floats and always read back as floats: `db.n = 5` reads back as `5.0`. Whole numbers are exact up to 16,777,216. Store large values, such as `os.time()` timestamps or ids, as strings. Use `math.tointeger(x)` or `x // 1` to get an integer back.
+- **Writing a table copies it.** Changing the Lua table afterwards doesn't change the database. Read the key back to get the live node.
+- Tables nested more than 32 levels deep are not stored.
+
+### Keys
+
+Keys are strings or numbers. Other key types read as `nil` and are ignored on write.
+
+- A string made only of digits (with an optional leading `-`) is the same key as that integer: `db["12"]` and `db[12]` are the same entry.
+- A number with a fractional part becomes a string key: `db[1.5]` is `db["1.5"]`.
+- `to_table` is the method below, so it can't be used as a key name.
+
+### `#node`
+
+The number of entries in the node, counting every key (not just `1..n`).
+
+### `tostring(node)`
+
+The node as compact JSON text.
+
+### `node:to_table()`
+
+A deep copy of the node as plain Lua tables; nested nodes become tables. A `db_table` can't be walked with `pairs`; iterate over this copy instead.
+
+Returns: `table`.
 
 ```lua
-storage.set("config", {
-    mode = "fast",
-    threshold = 0.5,
-    toggle_keys = { 0x2D, 0x56 },
-})
-
-local config = storage.get("config")
-if config and config.mode == "fast" then
-    -- ...
+for name, pos in pairs((db.waypoints and db.waypoints:to_table()) or {}) do
+    print(name, pos)
 end
 ```
 
----
+### Other notes
 
-## Pitfalls
-
-### Lua-table mutation does not auto-persist
+- Each read of a nested key returns a new `db_table` object, so don't compare nodes with `==`. Compare the values inside them.
+- `Vector`, `Vec2` and `Color` values keep their type across restarts.
 
 ```lua
-local t = storage.get("foo") or {}
-t.x = (t.x or 0) + 1
--- storage.set("foo", t) IS REQUIRED here — without it, the in-engine bucket still holds the old t
+-- Remember the last position you were at, across sessions.
+callback.on_frame:set(function()
+    local me = entity_list.local_pawn()
+    if me then db.last_pos = me:get_origin() end
+end)
+
+local last = db.last_pos            -- a Vector, or nil the first time
+if last then print("last position", last) end
 ```
 
-If you've cached the table reference and only mutated fields, the write doesn't propagate up automatically unless you reassign. Always `storage.set` after mutation.
+## global_ctx
 
-### Not persisted across DLL restart
+`global_ctx` is a string-keyed table shared by every script. It lives in memory only:
 
-The bucket is a Lua table — the whole shared Lua state is dropped on DLL unload. Schema migration between builds won't survive.
+- it is cleared on every full reload (map change, reload from the menu, game start),
+- it stays when a single script is reloaded,
+- it is never saved to disk.
 
-### Cross-script reads aren't exposed
+### `global_ctx.key` / `global_ctx.key = value`
 
-`storage.get("hits")` pulls from the **current** script's bucket. There's no `storage.get_from("OtherScript", key)` helper. If scripts need to share data, use:
+| Value type | Behaviour |
+|---|---|
+| `string`, `boolean` | stored as is |
+| `number` | stored as a single-precision float, read back as a float |
+| `nil` | removes the key |
+| anything else (tables, `Vector`, functions, ...) | ignored; the old value stays |
 
-- A shared Lua global (cross-script, lives in the same shared state). Collision names are a risk.
-- A widget's value (`Menu.Find("OtherScript", "Hits")` then `:get_int()`). This is also persistent across restart and visible to the user.
-- Document an IPC convention (e.g., a "_registry" script that's the only writer).
+Notes:
+- Keys must be strings. Other keys read as `nil` and are ignored on write.
+- `global_ctx` can't be iterated and has no length. Keep a list of your keys yourself if you need one.
+- For tables or game objects shared between scripts, use a global (all scripts share one environment, see [callbacks](callbacks.md#load-order)); `global_ctx` is for plain values.
 
-### Key types
+```lua
+-- script a.lua
+global_ctx.combo_active = true
 
-Keys must be strings — the engine stringifies your key on the way in. Numbers work for cache-slot access — `storage.set(123, ...)` indexes `bucket[123]` — but prefer string keys for clarity.
-
----
-
-## See also
-
-- [widgets-menu.md](widgets-menu.md) — widgets are persistent cross-restart storage
-- [timers.md](timers.md) — combining timers + storage
+-- script b.lua
+callback.on_frame:set(function()
+    if global_ctx.combo_active then
+        -- ...
+    end
+end)
+```
