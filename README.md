@@ -46,6 +46,7 @@ Read [Getting started](docs/getting-started.md) next: it explains this script li
 | [Game data](docs/gamedata.md) | `map_info` (camps, sinners, powerups, mid-boss, rifts, urn), `player_stats`, `meta`, localization, `sound`. |
 | [Panorama](docs/panorama.md) | `panorama` and `uipanel`: find, create and change the game's own UI. |
 | [Network](docs/network.md) | `http`, `protobuf`, `net_channel.send_net_message`, `gc`. |
+| [HERO_LIB](docs/hero-lib.md) | The built-in hero helper library: status checks, abilities, casting, target selection, prediction, spirit damage, menu builders. |
 
 ## Autocomplete
 

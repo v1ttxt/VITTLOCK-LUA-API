@@ -16,6 +16,7 @@ Complete scripts you can copy into `C:\VITTLOCK\scripts\v2\` and change. Each on
 | [10-panorama-label.lua](10-panorama-label.lua) | Adds a label to the game's own HUD. | `panorama`, `uipanel`, panel lifetime |
 | [11-modules.lua](11-modules.lua) + [lib/example_draw.lua](lib/example_draw.lua) | Health and souls panel built from a helper module. | `require`, the `lib\` folder |
 | [12-parry-warning.lua](12-parry-warning.lua) | Warns when an enemy in front of you is parrying. | Enemy modifier states, facing checks |
+| [13-hero-lib-target-info.lua](13-hero-lib-target-info.lua) | Shows the state of the enemy you are aiming at. | `HERO_LIB` target selection and status checks |
 
 ## Tips
 

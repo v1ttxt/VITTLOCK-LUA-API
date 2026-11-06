@@ -333,6 +333,7 @@ For each state given (separate arguments), the best modifier as in `find_best_mo
 The entity's VData (its static class data, the values from the game files) as a [`raw_struct`](#raw_struct), or `nil` when it has none.
 - Hero pawns: the hero's data (`CitadelHeroData_t`).
 - Abilities, weapons, items: their ability VData (`CitadelAbilityVData` or a subclass), with fields such as `m_strAbilityImage`.
+  Its `m_projectileInfo` is a plain table of the ability's projectile: `m_flSpeed`, `m_flGravityScale`, `m_flUpSpeed`, `m_flVerticalAimBias`, `m_flTriggerRadius` and `m_flPhysicsRadius` (all 0 for abilities without one).
 
 #### `e:get_vdata_class_name()`
 
