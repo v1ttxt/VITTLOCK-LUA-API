@@ -62,17 +62,17 @@ Handlers never run at the same time: every event takes the same script lock, so 
 
 Each game frame, in this order:
 
-1. Queued events from the game since the last frame: `on_add_modifier`, `on_particle_create` / `on_particle_update_transform` / `on_particle_destroy`, `on_received_net_message`.
+1. Queued events from the game since the last frame: `on_add_modifier` / `on_remove_modifier`, `on_particle_create` / `on_particle_update` / `on_particle_update_transform` / `on_particle_destroy`, `on_bullet_create`, `on_start_sound`, `on_target_acquired`, `on_received_net_message`.
 2. `on_frame`.
 
 For each user command your client builds:
 
 1. `on_pre_createmove`, early in building the command.
-2. Later, for the same tick: queued `on_late_add_entity`, `on_add_modifier` and particle events, then `on_createmove`, then `on_post_createmove`.
+2. Later, for the same tick: queued `on_late_add_entity`, modifier, particle, bullet, sound and target events, then `on_createmove`, then `on_post_createmove`.
 
 Each rendered frame: `on_draw`.
 
-These fire as soon as they happen, outside that order: `on_add_entity`, `on_remove_entity`, `on_send_net_message`, `on_send_gc_message`, `on_receive_gc_message`, `on_key_event`.
+These fire as soon as they happen, outside that order: `on_add_entity`, `on_remove_entity`, `on_pre_framestage` / `on_post_framestage`, `on_send_net_message`, `on_send_gc_message`, `on_receive_gc_message`, `on_key_event`.
 
 Queued modifier and particle events fire at whichever comes first, the next frame or the next command; late adds only fire at the next command. Queued events are only collected while at least one handler is set for that event, so a handler doesn't see things that happened before it was set.
 
@@ -332,11 +332,100 @@ callback.on_key_event:set(function(data)
 end)
 ```
 
+### `on_remove_modifier(mod, target)`
+
+Fires when a modifier that was applied after your handler was set leaves its target (it expired, was purged, or the target died). Delivered at the next frame or command after it is gone.
+
+| Name | Type | Description |
+|---|---|---|
+| `mod` | [`modifier`](entities.md#modifier) | The removed modifier. Only `get_class_name()` and `get_name()` still return its name; every other read returns empty values, because the modifier no longer exists. |
+| `target` | [`entity`](entities.md#entity) \| `nil` | The entity it was on, `nil` when that entity is gone too. |
+
+Only modifiers applied while at least one `on_remove_modifier` handler was set are tracked.
+
+```lua
+callback.on_remove_modifier:set(function(mod, target)
+    local me = entity_list.local_pawn()
+    if me and target == me then
+        print("effect ended: " .. mod:get_name())
+    end
+end)
+```
+
+### `on_particle_update(data)`
+
+Fires when the server attaches a particle's control point to an entity. Delivered at the next frame or command.
+
+| Field | Type | Description |
+|---|---|---|
+| `index` | `integer` | The particle's index (the same as in `on_particle_create`). |
+| `entity` | [`entity`](entities.md#entity) \| `nil` | The entity the control point follows, `nil` when it is not on your client. |
+| `control_point` | `integer` | The control point. |
+| `attach_type` | `integer` | How it attaches (the game's particle attachment type). |
+| `attachment` | `integer` | The model attachment index, when attached to one. |
+| `include_wearables` | `boolean` | Whether the entity's wearables are included. |
+| `position` | [`Vector`](types.md#vector) | The fallback position (used while the entity is unknown). |
+| `has_position` | `boolean` | Whether the message carried a fallback position. |
+
+### `on_bullet_create(data)`
+
+Fires for every bullet your client creates: yours and every other player's and NPC's whose shots it simulates. Delivered at the next frame or command.
+
+| Field | Type | Description |
+|---|---|---|
+| `shooter` | [`entity`](entities.md#entity) \| `nil` | Who fired it. |
+| `weapon_name` | `string` | The weapon or ability that fired it, e.g. `"citadel_weapon_..."`, `""` when unknown. |
+| `start_pos` | [`Vector`](types.md#vector) | Where the bullet starts. |
+| `direction` | [`Vector`](types.md#vector) | Its direction. |
+| `weapon` | [`raw_struct`](entities.md#raw_struct) \| `nil` | The weapon's data (speed, gravity, radius, lifetime fields such as `m_flBulletSpeed`). |
+
+```lua
+callback.on_bullet_create:set(function(b)
+    local me = entity_list.local_pawn()
+    if b.shooter and me and b.shooter ~= me then
+        print(b.weapon_name, b.shooter:get_name())
+    end
+end)
+```
+
+### `on_start_sound(event)`
+
+Fires when the server starts a sound event. Delivered at the next frame or command.
+
+| Field | Type | Description |
+|---|---|---|
+| `soundevent_hash` | `integer` | The sound event's hash; `sound.name(hash)` gives its name (see [game data](gamedata.md#sound)). |
+| `source` | [`entity`](entities.md#entity) \| `nil` | The entity playing it, `nil` when none or not on your client. |
+| `source_entity_index` | `integer` | The source's entity index, `-1` when none. |
+| `soundevent_guid` | `integer` | The instance's id. |
+| `seed` | `integer` | The sound's random seed. |
+| `start_time` | `number` | The start time sent with it. |
+| `position` | [`Vector`](types.md#vector) \| `nil` | Where it plays, `nil` when the message has no position. |
+
+```lua
+callback.on_start_sound:set(function(e)
+    local name = sound.name(e.soundevent_hash)
+    if name:find("Parry", 1, true) and e.source then
+        print(e.source:get_name() .. " played " .. name)
+    end
+end)
+```
+
+### `on_target_acquired(target)`
+
+Fires when VITTLOCK's aimbot locks onto a new target. Delivered at the next frame or command.
+
+| Name | Type | Description |
+|---|---|---|
+| `target` | [`player_pawn`](entities.md#player_pawn) \| [`entity`](entities.md#entity) | The new target. |
+
+### `on_pre_framestage(stage)` / `on_post_framestage(stage)`
+
+Fire before and after each step of the game's frame (the frame stages), on the game thread. `stage` is the stage number. Several stages run every frame, so keep these handlers very light; most scripts should use `on_frame` instead.
+
 ### Events that don't fire yet
 
-These entries exist in `callback`, so `:set` and `:unset` work on them without an error, but nothing fires them in this version. Their handlers are never called:
-
-`on_target_acquired`, `on_animation_start`, `on_animation_end`, `on_pre_framestage`, `on_post_framestage`, `on_particle_update`, `on_remove_modifier`, `on_bullet_create`, `on_start_sound`.
+`on_animation_start` and `on_animation_end` exist in `callback`, so `:set` and `:unset` work on them without an error, but nothing fires them in this version.
 
 ## Scripts and the shared environment
 

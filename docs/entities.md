@@ -629,7 +629,7 @@ A modifier object is re-checked on every use: it is valid while it is still on i
 
 ### `m:get_class_name()`
 
-The modifier's class name, e.g. `"CCitadel_Modifier_Stunned"`. This is the name `e:get_modifier` and `e:has_modifier` match against. `""` when removed.
+The modifier's class name, e.g. `"CCitadel_Modifier_Stunned"`. This is the name `e:get_modifier` and `e:has_modifier` match against. `""` when removed, except for the `mod` passed to [`on_remove_modifier`](callbacks.md#on_remove_modifiermod-target), which keeps its name.
 
 ### `m:get_name()`
 

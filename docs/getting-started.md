@@ -62,7 +62,7 @@ A script runs its top level once when it loads. After that, it only runs from ca
 | `on_frame` | Game logic every frame: reading entities, timers, panorama UI. |
 | `on_pre_createmove` / `on_createmove` / `on_post_createmove` | Changing what your player does this tick (buttons, movement, aim) through the [user command](usercmd.md). |
 | `on_draw` | Drawing with `Render.*`. |
-| Event callbacks | Things that happen: entities spawning, modifiers applied, particles, keys, network messages. |
+| Event callbacks | Things that happen: entities spawning, modifiers applied and removed, particles, bullets, sounds, keys, network messages. |
 
 See [callbacks](callbacks.md) for the full list, arguments and return values.
 

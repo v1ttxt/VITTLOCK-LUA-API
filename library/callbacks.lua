@@ -138,6 +138,74 @@ function on_key_event:set(fn) end
 ---@param fn fun(data: key_event_data): boolean|nil
 function on_key_event:unset(fn) end
 
+---@class callback_reg.on_remove_modifier: callback_reg
+local on_remove_modifier = {}
+---@param fn fun(mod: modifier, target: entity|player_pawn|ability|nil)
+function on_remove_modifier:set(fn) end
+---@param fn fun(mod: modifier, target: entity|player_pawn|ability|nil)
+function on_remove_modifier:unset(fn) end
+
+---@class particle_update_data
+---@field index integer The particle's index.
+---@field entity entity|player_pawn|ability|nil The entity the control point follows.
+---@field control_point integer
+---@field attach_type integer
+---@field attachment integer
+---@field include_wearables boolean
+---@field position Vector Fallback position.
+---@field has_position boolean
+
+---@class callback_reg.on_particle_update: callback_reg
+local on_particle_update = {}
+---@param fn fun(data: particle_update_data)
+function on_particle_update:set(fn) end
+---@param fn fun(data: particle_update_data)
+function on_particle_update:unset(fn) end
+
+---@class bullet_create_data
+---@field shooter entity|player_pawn|ability|nil Who fired it.
+---@field weapon_name string The weapon or ability that fired it ("" when unknown).
+---@field start_pos Vector
+---@field direction Vector
+---@field weapon raw_struct|nil The weapon's data (m_flBulletSpeed, ...).
+
+---@class callback_reg.on_bullet_create: callback_reg
+local on_bullet_create = {}
+---@param fn fun(data: bullet_create_data)
+function on_bullet_create:set(fn) end
+---@param fn fun(data: bullet_create_data)
+function on_bullet_create:unset(fn) end
+
+---@class start_sound_data
+---@field soundevent_hash integer
+---@field source entity|player_pawn|ability|nil
+---@field source_entity_index integer -1 when none.
+---@field soundevent_guid integer
+---@field seed integer
+---@field start_time number
+---@field position Vector|nil
+
+---@class callback_reg.on_start_sound: callback_reg
+local on_start_sound = {}
+---@param fn fun(event: start_sound_data)
+function on_start_sound:set(fn) end
+---@param fn fun(event: start_sound_data)
+function on_start_sound:unset(fn) end
+
+---@class callback_reg.on_target_acquired: callback_reg
+local on_target_acquired = {}
+---@param fn fun(target: player_pawn|entity)
+function on_target_acquired:set(fn) end
+---@param fn fun(target: player_pawn|entity)
+function on_target_acquired:unset(fn) end
+
+---@class callback_reg.framestage: callback_reg
+local framestage = {}
+---@param fn fun(stage: integer)
+function framestage:set(fn) end
+---@param fn fun(stage: integer)
+function framestage:unset(fn) end
+
 -- ── callback ────────────────────────────────────────────────────────────────
 
 ---The callback registry: one `callback_reg` per event.
@@ -161,15 +229,15 @@ function on_key_event:unset(fn) end
 ---@field on_particle_update_transform callback_reg.on_particle_update_transform The server moved a particle's control point.
 ---@field on_particle_destroy callback_reg.on_particle_destroy The server destroyed a particle effect.
 ---@field on_key_event callback_reg.on_key_event A key, mouse button or wheel event. Return false to keep it from the menu and the game window.
----@field on_target_acquired callback_reg Registered, but does not fire in this version.
+---@field on_target_acquired callback_reg.on_target_acquired VITTLOCK's aimbot locked onto a new target.
 ---@field on_animation_start callback_reg Registered, but does not fire in this version.
 ---@field on_animation_end callback_reg Registered, but does not fire in this version.
----@field on_pre_framestage callback_reg Registered, but does not fire in this version.
----@field on_post_framestage callback_reg Registered, but does not fire in this version.
----@field on_particle_update callback_reg Registered, but does not fire in this version.
----@field on_remove_modifier callback_reg Registered, but does not fire in this version.
----@field on_bullet_create callback_reg Registered, but does not fire in this version.
----@field on_start_sound callback_reg Registered, but does not fire in this version.
+---@field on_pre_framestage callback_reg.framestage Before each frame stage (game thread). Keep it light.
+---@field on_post_framestage callback_reg.framestage After each frame stage (game thread). Keep it light.
+---@field on_particle_update callback_reg.on_particle_update The server attached a particle control point to an entity.
+---@field on_remove_modifier callback_reg.on_remove_modifier A tracked modifier left its target.
+---@field on_bullet_create callback_reg.on_bullet_create Your client created a bullet (anyone's).
+---@field on_start_sound callback_reg.on_start_sound The server started a sound event.
 callback = {}
 
 -- ── Shared environment ──────────────────────────────────────────────────────

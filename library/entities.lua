@@ -403,7 +403,7 @@ function ability:find_entities_in_cone(team, start, direction, range, half_width
 ---@field [string] any Schema field of the modifier's class or CBaseModifier.
 local modifier = {}
 
----The modifier's class name, e.g. "CCitadel_Modifier_Stunned"; "" when removed.
+---The modifier's class name, e.g. "CCitadel_Modifier_Stunned"; "" when removed (on_remove_modifier's modifier keeps it).
 ---@return string
 function modifier:get_class_name() end
 
