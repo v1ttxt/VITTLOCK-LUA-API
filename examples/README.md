@@ -1,54 +1,26 @@
 # Examples
 
-Runnable VITTLOCK Lua scripts — drop them into `C:\VITTLOCK\Scripts\<SubDir>\` and play with the toggle. Each file is self-contained and uses only documented API surface.
+Complete scripts you can copy into `C:\VITTLOCK\scripts\v2\` and change. Each one adds its own page under **Examples** in the menu's **Lua** tab and starts with a comment listing the API it shows.
 
-| # | Script | Demonstrates |
+| File | What it does | Shows |
 |---|---|---|
-| 01 | `01-minimal.lua` | Smallest possible script — one switch + on_frame + on_render |
-| 02 | `02-toggle-keypress.lua` | Toggle on keypress with on-screen notification overlay |
-| 03 | `03-enemy-esp-box.lua` | ESP boxes around enemies using WorldToScreen + bone positions |
-| 04 | `04-auto-parry-event.lua` | Modifier event → storage handoff → cmd button on next tick |
-| 05 | `05-velocity-hud.lua` | HUD readout of velocity, time, tick rate |
-| 06 | `06-periodic-heartbeat.lua` | `timers.every` + storage-backed counter + reset button |
-| 07 | `07-combo-color-multi.lua` | Every widget kind — combo, color, sliders, group, separator, button |
-| 08 | `08-input-key-tracker.lua` | `callbacks.on_key_pressed/released` worldwide |
-| 09 | `09-bullet-tracker.lua` | `callbacks.on_bullet_create` rich payload + on-screen feed |
-| 10 | `10-full-template.lua` | Comprehensive template covering every subsystem — copy as your starting point |
-| 11 | `11-psilent-fov-override.lua` | Native `CAimbot` setting control through `aimbot.get/set` |
-| 12 | `12-dynamic-subtab.lua` | Dedicated script sub-tab with 2-column card split, MultiCombo & reactive visibility |
-| 13 | `13-custom-fonts-and-images.lua` | Dynamic font sizing, custom TTF fonts, Cyrillic/FontAwesome, images, polygons & os.date |
-| 14 | `14-icon-inspector.lua` | Comprehensive test suite for FontAwesome 6 icons, geometric shapes, Cyrillic & arrows |
+| [01-hello.lua](01-hello.lua) | Draws your health on screen. | Menu basics, `on_draw`, `Render.Text`, reading a field |
+| [02-enemy-esp.lua](02-enemy-esp.lua) | Boxes, health bars and distance on enemy heroes. | Gathering in `on_frame`, drawing in `on_draw`, `WorldToScreen`, bones |
+| [03-ability-cooldowns.lua](03-ability-cooldowns.lua) | Your four abilities and their cooldowns under the crosshair. | Abilities by slot, fonts |
+| [04-rapid-fire-key.lua](04-rapid-fire-key.lua) | Taps fire repeatedly while a key is held. | `Bind`, `on_createmove`, `cmd:pulse` |
+| [05-visible-enemies.lua](05-visible-enemies.lua) | Marks enemies whose head you can see. | `trace.line`, line of sight, throttling |
+| [06-camp-timers.lua](06-camp-timers.lua) | Respawn countdowns over neutral camps. | `map_info`, built-in SVG icons, images |
+| [07-status-alerts.lua](07-status-alerts.lua) | A notification when you get stunned, silenced or immobilized. | Modifier states, `Notification`, `on_add_modifier` |
+| [08-accuracy-tracker.lua](08-accuracy-tracker.lua) | Shots, hits, accuracy, and your best accuracy ever. | `player_stats`, the persistent `db`, buttons |
+| [09-http-json.lua](09-http-json.lua) | Fetches data from a web API and shows it in the menu. | `http`, JSON, labels |
+| [10-panorama-label.lua](10-panorama-label.lua) | Adds a label to the game's own HUD. | `panorama`, `uipanel`, panel lifetime |
+| [11-modules.lua](11-modules.lua) + [lib/example_draw.lua](lib/example_draw.lua) | Health and souls panel built from a helper module. | `require`, the `lib\` folder |
+| [12-parry-warning.lua](12-parry-warning.lua) | Warns when an enemy in front of you is parrying. | Enemy modifier states, facing checks |
 
-## How to load these
+## Tips
 
-The VITTLOCK script directory is `C:\VITTLOCK\Scripts\`, scanned recursively for `.lua` files. The first subdirectory below `Scripts\` becomes the **category** for the card. So if you copy them as:
-
-```
-C:\VITTLOCK\Scripts\Examples\
-    ├── 01-minimal.lua
-    ├── 02-toggle-keypress.lua
-    ├── ...
-    ├── 10-full-template.lua
-    └── 11-psilent-fov-override.lua
-```
-
-…each will land under the `Examples` category tab in the **Lua Scripts** menu.
-
-## Workflow
-
-1. Edit the file in your editor (VS Code with the Lua Language Server pointed at `__STORAGE__/_docs` for autocomplete).
-2. Toggle **Hot-reload** on the menu's **Lua Scripts** tab.
-3. Save the file in your editor — the engine picks up the mtime change within 1 second and reloads just that one script.
-4. Watch for compile errors in the **Errors** panel of the Lua Scripts tab; right-click the card → **Open in editor** for quick navigation.
-
-## Lessons by category
-
-- **Menu** ([docs/widgets-menu.md](../docs/widgets-menu.md)) — see 07 for every widget, 06 for buttons that mutate state, 10 for tooltips.
-- **Callbacks** ([docs/callbacks-events.md](../docs/callbacks-events.md)) — 04 demonstrates modifier-event-driven behaviour with cross-callback handoff.
-- **Entity** ([docs/entity-wrappers.md](../docs/entity-wrappers.md)) — 03 uses `entity_list:enemies()`, 09 uses bullet payloads, 10 uses modifier payloads.
-- **Rendering** ([docs/render-imgui.md](../docs/render-imgui.md)) — 02 is an ImGui popup; 05, 09 use `render.*` HUD.
-- **Timers + storage** ([docs/timers.md](../docs/timers.md), [docs/storage.md](../docs/storage.md)) — 06 shows the canonical pairing.
-
-## License
-
-See [LICENSE](../LICENSE) at repo root.
+- Load fonts and images at the top of the script, never inside a callback.
+- Read game state in `on_frame` (or the createmove callbacks), store plain values, and only draw them in `on_draw`.
+- Always handle `entity_list.local_pawn()` being `nil`: it is, in the main menu and while a map loads.
+- `print` and errors go to your script's log in the menu's **Lua** tab.
+- Put shared code in `scripts\v2\lib\` and `require` it; files there don't run as scripts on their own.
