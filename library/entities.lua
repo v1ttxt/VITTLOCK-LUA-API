@@ -58,6 +58,13 @@ function entity_list.local_controller() end
 ---@field cp integer Control point number.
 ---@field origin Vector World position.
 
+---One animation clip in an entity's pose, from its last animation update. Read-only.
+---`tostring` gives "lua_anim_data_t(<name>, cycle 0.250, 1.33 s)".
+---@class lua_anim_data_t
+---@field name string The clip's path, e.g. "models/heroes_wip/abrams/clips/weapon_stand_idle.vnmclip".
+---@field cycle number How far through the clip at that update, 0 (start) to 1 (end). Doesn't advance between updates.
+---@field duration number The clip's length in seconds.
+
 ---Any game entity. Holds the entity's handle and looks it up again on every call, so it never points at freed memory.
 ---Index it with a schema field name (`e.m_iHealth`) to read a networked field; assign to write it (client side only).
 ---@class entity
@@ -223,8 +230,10 @@ function entity:get_attachment(name) end
 ---@return Vector|nil
 function entity:get_fireport_position() end
 
----Currently always an empty table.
----@return table
+---The animation clips in the entity's pose, from its last update by the server (each clip once).
+---Always empty for your own pawn, which your client animates locally.
+---Lists are only collected while an animation handler is set or once a script has called this, so the first call returns an empty table.
+---@return lua_anim_data_t[]
 function entity:get_anims() end
 
 ---The live server particles owned by this entity.

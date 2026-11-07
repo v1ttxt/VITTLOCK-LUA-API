@@ -378,9 +378,50 @@ World position of a named model attachment (`Vector`), e.g. `"ability_cast"`, or
 
 The muzzle point of your weapon (`Vector`). Only works on your own pawn; returns `nil` for every other entity. Extra arguments are ignored.
 
+### Animations
+
+The animation clips that make up the entity's pose, as sent by the server. They cover other heroes, troopers, bosses and props, **not your own pawn**: your client animates it locally, so its list is always empty. [`on_animation_start` / `on_animation_end`](callbacks.md#on_animation_startentity-anim--on_animation_endentity-anim) fire when a clip joins or leaves this list.
+
 #### `e:get_anims()`
 
-Currently always returns an empty table.
+An array of [`lua_anim_data_t`](#lua_anim_data_t), one per clip, from the entity's last animation update. Each clip is listed once, even when the pose uses it twice. An empty table when nothing has arrived for the entity.
+
+Lists are only collected while a script needs them: while an animation handler is set, or once any script has called `get_anims`. The first call therefore returns an empty table; the lists fill from the next update.
+
+```lua
+-- The first clip whose path contains `part`, or nil.
+local function find_anim(ent, part)
+    for _, anim in ipairs(ent:get_anims()) do
+        if anim.name:find(part, 1, true) then
+            return anim
+        end
+    end
+end
+
+local meleeing = {}   -- handle -> clip progress (0..1)
+
+callback.on_frame:set(function()
+    meleeing = {}
+    for _, enemy in ipairs(entity_list.by_class_name("C_CitadelPlayerPawn", entity_list.team_filter.enemy)) do
+        local anim = find_anim(enemy, "melee")
+        if anim then
+            meleeing[enemy:get_handle()] = anim.cycle
+        end
+    end
+end)
+```
+
+#### `lua_anim_data_t`
+
+One clip. Read-only.
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | The clip's path, e.g. `"models/heroes_wip/abrams/clips/weapon_stand_idle.vnmclip"`. |
+| `cycle` | `number` | How far through the clip it was at that update, from `0` (start) to `1` (end). It doesn't advance between updates. |
+| `duration` | `number` | The clip's length in seconds. |
+
+`tostring(anim)` gives `"lua_anim_data_t(<name>, cycle 0.250, 1.33 s)"`.
 
 ### Particles
 

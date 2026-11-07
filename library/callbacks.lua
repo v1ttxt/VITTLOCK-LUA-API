@@ -199,6 +199,13 @@ function on_target_acquired:set(fn) end
 ---@param fn fun(target: player_pawn|entity)
 function on_target_acquired:unset(fn) end
 
+---@class callback_reg.animation: callback_reg
+local animation = {}
+---@param fn fun(entity: player_pawn|entity, anim: lua_anim_data_t)
+function animation:set(fn) end
+---@param fn fun(entity: player_pawn|entity, anim: lua_anim_data_t)
+function animation:unset(fn) end
+
 ---@class callback_reg.framestage: callback_reg
 local framestage = {}
 ---@param fn fun(stage: integer)
@@ -230,8 +237,8 @@ function framestage:unset(fn) end
 ---@field on_particle_destroy callback_reg.on_particle_destroy The server destroyed a particle effect.
 ---@field on_key_event callback_reg.on_key_event A key, mouse button or wheel event. Return false to keep it from the menu and the game window.
 ---@field on_target_acquired callback_reg.on_target_acquired VITTLOCK's aimbot locked onto a new target.
----@field on_animation_start callback_reg Registered, but does not fire in this version.
----@field on_animation_end callback_reg Registered, but does not fire in this version.
+---@field on_animation_start callback_reg.animation A clip joined an entity's pose (server-animated entities; not your own pawn).
+---@field on_animation_end callback_reg.animation A clip left an entity's pose (server-animated entities; not your own pawn).
 ---@field on_pre_framestage callback_reg.framestage Before each frame stage (game thread). Keep it light.
 ---@field on_post_framestage callback_reg.framestage After each frame stage (game thread). Keep it light.
 ---@field on_particle_update callback_reg.on_particle_update The server attached a particle control point to an entity.

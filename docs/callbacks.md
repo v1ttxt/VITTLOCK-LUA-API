@@ -62,13 +62,13 @@ Handlers never run at the same time: every event takes the same script lock, so 
 
 Each game frame, in this order:
 
-1. Queued events from the game since the last frame: `on_add_modifier` / `on_remove_modifier`, `on_particle_create` / `on_particle_update` / `on_particle_update_transform` / `on_particle_destroy`, `on_bullet_create`, `on_start_sound`, `on_target_acquired`, `on_received_net_message`.
+1. Queued events from the game since the last frame: `on_add_modifier` / `on_remove_modifier`, `on_particle_create` / `on_particle_update` / `on_particle_update_transform` / `on_particle_destroy`, `on_bullet_create`, `on_start_sound`, `on_target_acquired`, `on_animation_start` / `on_animation_end`, `on_received_net_message`.
 2. `on_frame`.
 
 For each user command your client builds:
 
 1. `on_pre_createmove`, early in building the command.
-2. Later, for the same tick: queued `on_late_add_entity`, modifier, particle, bullet, sound and target events, then `on_createmove`, then `on_post_createmove`.
+2. Later, for the same tick: queued `on_late_add_entity`, modifier, particle, bullet, sound, target and animation events, then `on_createmove`, then `on_post_createmove`.
 
 Each rendered frame: `on_draw`.
 
@@ -423,9 +423,28 @@ Fires when VITTLOCK's aimbot locks onto a new target. Delivered at the next fram
 
 Fire before and after each step of the game's frame (the frame stages), on the game thread. `stage` is the stage number. Several stages run every frame, so keep these handlers very light; most scripts should use `on_frame` instead.
 
-### Events that don't fire yet
+### `on_animation_start(entity, anim)` / `on_animation_end(entity, anim)`
 
-`on_animation_start` and `on_animation_end` exist in `callback`, so `:set` and `:unset` work on them without an error, but nothing fires them in this version.
+Fire when an animation clip starts or stops playing on an entity. Delivered at the next frame or command.
+
+Each time the server updates an entity's animation, the client gets the list of clips that make up its pose. `on_animation_start` fires for every clip in the new list that wasn't in the previous one, and `on_animation_end` for every clip that dropped out. Blends count: a clip that is fading out ends only once it no longer adds to the pose. A clip that keeps playing, looping or not, doesn't fire again. In each update the start events fire first, then the end events.
+
+| Name | Type | Description |
+|---|---|---|
+| `entity` | [`player_pawn`](entities.md#player_pawn) \| [`entity`](entities.md#entity) | The entity the clip plays on. |
+| `anim` | [`lua_anim_data_t`](entities.md#lua_anim_data_t) | The clip. In `on_animation_end`, its values from the last update it was in. |
+
+These events cover the entities whose animation comes from the server: other heroes, troopers, bosses, props. **They don't fire for your own pawn.** Your client animates it locally and never receives that list for it. When an entity is removed, its clips are dropped without an `on_animation_end`.
+
+The same list is what [`e:get_anims()`](entities.md#eget_anims) returns.
+
+```lua
+callback.on_animation_start:set(function(ent, anim)
+    if ent:get_class_name() == "C_CitadelPlayerPawn" then
+        print(("%s: %s (%.2f s)"):format(ent:get_name(), anim.name, anim.duration))
+    end
+end)
+```
 
 ## Scripts and the shared environment
 
