@@ -1,6 +1,6 @@
 # Panorama UI
 
-`panorama` finds and creates panels in the game's Panorama UI (the HUD, menus, scoreboard). Each panel comes back as a `uipanel` handle that you use to read the panel tree, change classes, styles, text and attributes, run Panorama JavaScript, or delete panels you made. Use it to add small UI elements to the HUD or change existing ones.
+`panorama` finds and creates panels in the game's Panorama UI (the HUD, menus, scoreboard). Each panel comes back as a `uipanel` handle that you use to read the panel tree, change classes, styles, text and attributes, run Panorama JavaScript, or delete panels you made. Use it to add small UI elements to the HUD or change existing ones. [`file_spoofer`](#file_spoofer) supplies your own layout, style and script files for them.
 
 ## Rules
 
@@ -307,4 +307,83 @@ box:run_script("$.GetContextPanel().FindChildTraverse('my_box').AddClass('flash'
 
 ## file_spoofer
 
-`file_spoofer.add_resource(...)`, `file_spoofer.add_folder(...)` and `file_spoofer.reload_resource(...)` are not available; they always return `false`.
+`file_spoofer` lets a script supply its own Panorama files: layouts, styles, scripts and SVGs. A file you add is kept in memory, and whenever the game opens that path it reads your version instead of its own. Use it to give your panels their own layouts and stylesheets, or to replace one of the game's files.
+
+Paths are the compiled names the game opens, with `/`: `panorama/layout/my_panel.vxml_c`, `panorama/styles/my_panel.vcss_c`. Here is how the game maps the URLs layouts use to those names:
+
+- `panel:load_layout_file("file://{resources}/layout/my_panel.xml")` reads `panorama/layout/my_panel.vxml_c`.
+- A stylesheet the layout includes as `file://{resources}/styles/my_panel.css` is read from `panorama/styles/my_panel.vcss_c`.
+
+Added files stay until the game closes. Reloading scripts doesn't remove them, and adding a path again replaces its file. A replaced game file is replaced whole, so copy the original's content into yours if you only want to change part of it.
+
+### `file_spoofer.add_resource(file_path, content)`
+
+Stores `content` as the file `file_path`. `\` in the path becomes `/`. Pass the source text (XML, CSS, JavaScript or SVG) as you would write it; it is packed into the game's resource format for you. Returns `true`.
+
+It only changes what the game loads from then on. A layout or stylesheet that is already loaded keeps its old version until it is loaded again or you call `reload_resource`.
+
+| Name | Type | Description |
+|---|---|---|
+| `file_path` | `string` | The compiled path, e.g. `"panorama/styles/my_panel.vcss_c"`. |
+| `content` | `string` | The source text. |
+
+### `file_spoofer.add_folder(dir_path)`
+
+Adds every file under a folder on disk, subfolders included.
+- Each file's path in the game is its path relative to `dir_path`, with `/`.
+- `.xml`, `.css`, `.js` and `.svg` become `.vxml_c`, `.vcss_c`, `.vjs_c` and `.vsvg_c`. Other files are added under their own name.
+- Empty files are skipped, and so are files that can't be read (for example, ones another program has open for writing).
+
+To get `panorama/...` paths, point `dir_path` at the folder that contains `panorama`:
+
+```
+C:\my_ui\panorama\layout\my_panel.xml   ->  panorama/layout/my_panel.vxml_c
+C:\my_ui\panorama\styles\my_panel.css   ->  panorama/styles/my_panel.vcss_c
+```
+
+Returns `true` when the folder has at least one entry. Returns `false` when it is missing or empty, or when `dir_path` is not a full path.
+
+| Name | Type | Description |
+|---|---|---|
+| `dir_path` | `string` | Full path of the folder, with a drive letter, e.g. `"C:\\my_ui"` (`/` works too). |
+
+### `file_spoofer.reload_resource(file_path)`
+
+Makes the game reload a file it has already loaded, so the panels built from it pick up the new version. Call it after `add_resource` to update a layout or stylesheet that is in use. The reload happens on the next frame. Returns nothing.
+
+| Name | Type | Description |
+|---|---|---|
+| `file_path` | `string` | The compiled path, e.g. `"panorama/layout/my_panel.vxml_c"`. |
+
+```lua
+file_spoofer.add_resource("panorama/styles/my_panel.vcss_c", [[
+.MyPanel { width: 300px; height: 48px; horizontal-align: center; margin-top: 140px; background-color: #202020dd; }
+.MyLabel { color: white; font-size: 22px; horizontal-align: center; vertical-align: center; }
+]])
+
+local function layout(text)
+    return ([[
+<root>
+    <styles><include src="file://{resources}/styles/my_panel.css" /></styles>
+    <Panel class="MyPanel"><Label id="MyLabel" class="MyLabel" text="%s" /></Panel>
+</root>]]):format(text)
+end
+file_spoofer.add_resource("panorama/layout/my_panel.vxml_c", layout("Hello"))
+
+local host
+callback.on_frame:set(function()
+    if host and host:is_valid() then return end
+    local hud = panorama.get_panel_by_id("Hud")
+    if not hud then return end
+    host = panorama.create_panel("Panel", "my_panel_host", hud, "", "width: 100%; height: 100%;")
+    if host then
+        host:load_layout_file("file://{resources}/layout/my_panel.xml", true)
+    end
+end)
+
+-- Later: new text for the same layout.
+local function retitle(text)
+    file_spoofer.add_resource("panorama/layout/my_panel.vxml_c", layout(text))
+    file_spoofer.reload_resource("panorama/layout/my_panel.vxml_c")
+end
+```

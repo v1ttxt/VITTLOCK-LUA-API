@@ -266,21 +266,24 @@ function uipanel:get_bounds() end
 ---@param code string JavaScript source.
 function uipanel:run_script(code) end
 
----Not available: these functions always return false.
+---Supplies Panorama files (layouts, styles, scripts, SVGs) from memory: when the game opens a stored path, it reads the stored version.
+---Paths are the compiled names with `/`, e.g. "panorama/layout/my_panel.vxml_c". Files stay until the game closes; adding a path again replaces it.
 ---@class file_spoofer
 file_spoofer = {}
 
----Not available; always returns false.
----@param ... any
----@return boolean
-function file_spoofer.add_resource(...) end
+---Stores `content` (the source text, packed into the game's resource format for you) as the file `file_path`. `\` becomes `/`.
+---Only affects what the game loads from then on; use `reload_resource` for a file already in use.
+---@param file_path string The compiled path, e.g. "panorama/styles/my_panel.vcss_c".
+---@param content string XML, CSS, JavaScript or SVG source.
+---@return boolean ok Always true.
+function file_spoofer.add_resource(file_path, content) end
 
----Not available; always returns false.
----@param ... any
----@return boolean
-function file_spoofer.add_folder(...) end
+---Adds every file under the folder, subfolders included, under its path relative to the folder.
+---.xml / .css / .js / .svg become .vxml_c / .vcss_c / .vjs_c / .vsvg_c; other files keep their name; empty files are skipped.
+---@param dir_path string Full path with a drive letter, e.g. "C:\\my_ui" (the folder that contains `panorama`).
+---@return boolean ok False when the folder is missing or empty, or the path is not a full path.
+function file_spoofer.add_folder(dir_path) end
 
----Not available; always returns false.
----@param ... any
----@return boolean
-function file_spoofer.reload_resource(...) end
+---Makes the game reload a file it has already loaded (on the next frame), e.g. after `add_resource` replaced it.
+---@param file_path string The compiled path, e.g. "panorama/layout/my_panel.vxml_c".
+function file_spoofer.reload_resource(file_path) end
