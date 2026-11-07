@@ -175,7 +175,16 @@ Returns `true` when the record is still inside the server's lag-compensation win
 
 ### `rec:hitbox_pos(index)`
 
-Returns the recorded head position as a Vector. The index argument is required, but every index currently returns the head.
+Returns the recorded position of a hitbox as a Vector: the position of the bone the hitbox is attached to, at the time of the record. `index` is the hitbox's index in the hero's hitbox set, the same number as `hitbox_index` in `hitscan.evaluate` results (0 to 63). A hitbox without a bone gives the record's `abs_origin`.
+
+Returns `(0, 0, 0)` for an index the hero has no hitbox for. Hitbox positions are only recorded once a script has called `backtrack.records`: records taken before the first call have no hitbox data, so every index returns `(0, 0, 0)` on them.
+
+```lua
+local recs = backtrack.records(enemy)
+if recs[1] then
+    print("head 1 record ago: " .. tostring(recs[1]:hitbox_pos(0)))
+end
+```
 
 ## hitscan
 
@@ -185,25 +194,29 @@ Hitgroup bits, for `mask` and the result's `hitgroup`:
 
 | Name | Value | Hitboxes |
 |---|---|---|
-| `hitscan.HEAD` | 1 | Head |
-| `hitscan.CHEST` | 2 | Chest and neck |
-| `hitscan.STOMACH` | 4 | Stomach |
-| `hitscan.ARMS` | 8 | Arms |
-| `hitscan.LEGS` | 0x10 | Legs |
+| `hitscan.HEAD` | 1 | Head and neck |
+| `hitscan.CHEST` | 2 | Chest and upper spine |
+| `hitscan.STOMACH` | 4 | Stomach, pelvis and lower spine |
+| `hitscan.ARMS` | 8 | Arms and hands |
+| `hitscan.LEGS` | 0x10 | Legs and feet |
 | `hitscan.OTHER` | 0x20 | Everything else |
+
+A hitbox's group comes from its name (for example `head`, `neck`, `thigh`, `forearm`, `pelvis`), then from its bone's name, then from the hitgroup the model gives it. A hitbox none of these place is `OTHER`.
 
 Multipoint levels, for `multipoint`:
 
 | Name | Value | Points per hitbox |
 |---|---|---|
 | `hitscan.MULTIPOINT_DISABLED` | 0 | Centre only |
-| `hitscan.MINIMUM` | 1 | Centre + 1 sample |
-| `hitscan.MEDIUM` | 2 | Centre + 2 samples |
-| `hitscan.HIGH` | 3 | Centre + 3 samples |
+| `hitscan.MINIMUM` | 1 | Centre + 2 ring points |
+| `hitscan.MEDIUM` | 2 | Centre + 4 ring points |
+| `hitscan.HIGH` | 3 | Centre + 6 ring points |
 
 ### `hitscan.evaluate(params)`
 
-Checks points on the target's hitboxes and returns the best one you can hit. Points are traced from your camera position with bullet collision; a point counts when the trace reaches the target (or stops within a few units of the point). The current pose is always tried; each record in `params.records` adds the same hitboxes moved to that record's position.
+Checks points on the target's hitboxes and returns the one closest to your crosshair that a bullet can reach. Each point is traced from your camera position with a sphere the size of your bullet. A point counts when the trace stops on the target. On a record, a trace that nothing blocks also counts, because the target's body is no longer at the recorded position.
+
+The current pose is tried first. Records in `params.records` are only used when the current pose has no usable point; each is tried with the hitboxes at that record's recorded positions.
 
 Returns `result, nil` on success or `nil, err` on failure.
 
@@ -213,12 +226,12 @@ Parameters (fields of `params`):
 |---|---|---|---|
 | `target` | entity | required | The entity to evaluate. |
 | `mask` | integer | `0x1F` | Hitgroup bits to consider. The default is everything except `OTHER`. `0` always fails with `no_candidate`. |
-| `records` | BacktrackRecord[] | none | Extra poses to try. Values that are not records are skipped. Records are not checked with `is_valid()`: filter them yourself. |
-| `multipoint` | integer | `0` | Extra samples per hitbox (0-3, clamped). Samples are spaced evenly along the hitbox between its two ends; each also gets a second point offset by a fraction of the hitbox radius. |
-| `point_scale` | number | `100` | Scales that offset. At 100 it is about 82% of the hitbox radius. |
-| `min_damage` | number | `1` | Points with a lower estimated damage are rejected. |
-| `min_hitchance` | number | `0` | Minimum hit chance in percent (0-100). |
-| `trace_count` | integer | `0` | The hit-chance check only runs when this is non-zero and `min_hitchance > 0`. Otherwise every point has hit chance 1. |
+| `records` | BacktrackRecord[] | none | Extra poses to try, in the order given. Values that are not records are skipped, and records are ignored when `target` is not a hero. Records are not checked with `is_valid()`: filter them yourself. |
+| `multipoint` | integer | `0` | Ring points per hitbox (see the table above). Any value other than 1, 2 or 3 gives the centre only. The ring is centred on the hitbox and faces your camera, so its points spread sideways and up and down as you see the hitbox. |
+| `point_scale` | number | `100` | Size of the ring. At 100 the ring is 82% of the hitbox radius (for box hitboxes, 82% of the distance to the box's side in that direction). If a ring point can't be placed, that hitbox uses its centre only. |
+| `min_damage` | number | `1` | Points whose damage is lower are rejected. A point with exactly `min_damage` passes. |
+| `min_hitchance` | number | `0` | Minimum hit chance in percent. Hit chance is always 100, so this only rejects anything when it is above 100 (and `trace_count` is non-zero). |
+| `trace_count` | integer | `0` | The `min_hitchance` check only runs when this is non-zero and `min_hitchance > 0`. |
 
 Result fields:
 
@@ -227,11 +240,11 @@ Result fields:
 | `record` | BacktrackRecord or nil | The record the point was found on, or `nil` for the current pose. |
 | `tick` | integer | `record.tick`, or `0` for the current pose. |
 | `aim_point` | Vector | World position to aim at. |
-| `hitbox_index` | integer | Index of the hitbox in the target's hitbox set. |
+| `hitbox_index` | integer | Index of the hitbox in the target's hitbox set (the index `rec:hitbox_pos` takes). |
 | `hitgroup` | integer | One of the hitgroup bits above. |
 | `fov` | number | Angle in degrees between your camera's view direction and `aim_point`. |
-| `damage` | number | Estimated damage of one bullet at that point. |
-| `hitchance` | number | Estimated hit chance from 0 to 1. |
+| `damage` | number | Damage of one bullet on this pose (see the notes below). |
+| `hitchance` | number | Always `100`. |
 
 Error codes, checked in this order:
 
@@ -240,15 +253,16 @@ Error codes, checked in this order:
 | `invalid_target` | `target` is missing or not a valid entity. |
 | `no_local_player` | You have no pawn. |
 | `no_weapon` | You have no primary weapon. |
-| `below_hitchance` | Some points were reachable, but every one failed `min_hitchance`. |
+| `below_hitchance` | A point was found, but `min_hitchance` was above 100 (with `trace_count` set). |
 | `below_damage` | Some points were reachable, but every one failed `min_damage`. |
 | `no_candidate` | Nothing usable: no reachable point, `mask` was 0, or the target has no hitboxes. |
 
 Notes:
 
-- **Damage is an estimate**: the weapon's base bullet damage with its distance falloff, doubled for head points. It does not include item bonuses or the target's resistances. Use it for comparisons and thresholds, not exact kill checks.
-- **Hit chance** compares your weapon's current spread with how large the hitbox looks from the camera. It is 1 when spread is negligible.
-- Among the accepted points, the one with the highest `damage * (0.5 + 0.5 * hitchance)` wins.
+- **Which point wins.** Within one pose, the point with the lowest `fov` wins. When two are practically level, a lethal point wins, then the higher damage, then a hitbox centre. Points of the same hitgroup within 0.75 units of each other count as one. The current pose wins whenever it has a point. Otherwise the record with the lowest `fov` wins, then a lethal one, then the higher damage.
+- **Damage** is one number per pose, the same for every hitbox: there is no headshot multiplier. It starts from your weapon's bullet damage and adds your bonuses: the bullet damage you gain from your level, weapon and bullet damage increases, close-range and long-range bonuses (when the target is inside or beyond their range), bonus damage against non-hero targets, and your damage multipliers and flat bonuses. Damage falloff is then applied over the distance between your origin and the target's (the record's origin for a record). It does not include the target's resistances or shields, crits, or the number of pellets a shot fires. While another ability is selected instead of your gun (for example while you aim an ability), it is the gun's plain bullet damage, without bonuses or falloff.
+- **Lethal** means `damage` is at least the target's current health.
+- **Hit chance** is not estimated: it is always 100, and `min_hitchance` / `trace_count` are kept for compatibility.
 - Cost grows with hitboxes x points x poses. `HIGH` multipoint with many records means many traces per call: evaluate one target per tick, not every enemy.
 
 ### Example: best head or chest point, including backtrack

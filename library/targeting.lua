@@ -76,8 +76,8 @@ local BacktrackRecord = {}
 ---@return boolean valid
 function BacktrackRecord:is_valid() end
 
----The recorded head position. The index is required, but every index currently returns the head.
----@param index integer Bone index.
+---The recorded position of a hitbox (the position of its bone; `abs_origin` for a hitbox without a bone). (0, 0, 0) for an index the hero has no hitbox for, and for every index on records taken before the first `backtrack.records` call.
+---@param index integer Hitbox index in the hero's hitbox set (0-63), as in `HitscanResult.hitbox_index`.
 ---@return Vector pos
 function BacktrackRecord:hitbox_pos(index) end
 
@@ -99,7 +99,7 @@ function backtrack.records(ent) end
 ---| "invalid_target"  # target missing or not a valid entity
 ---| "no_local_player" # you have no pawn
 ---| "no_weapon"       # no primary weapon
----| "below_hitchance" # points were reachable but all failed min_hitchance
+---| "below_hitchance" # a point was found but min_hitchance was above 100 (with trace_count set)
 ---| "below_damage"    # points were reachable but all failed min_damage
 ---| "no_candidate"    # nothing reachable (or mask = 0, or no hitboxes)
 
@@ -107,50 +107,50 @@ function backtrack.records(ent) end
 ---@class HitscanParams
 ---@field target entity Required. The entity to evaluate.
 ---@field mask? integer Hitgroup bits to consider (`hitscan.HEAD` ...). Default 0x1F (all except OTHER).
----@field records? BacktrackRecord[] Extra poses to try besides the current one. Default none.
----@field multipoint? integer `hitscan.MULTIPOINT_DISABLED` .. `hitscan.HIGH` (0-3), clamped. Default 0.
----@field point_scale? number Scales the offset of the extra multipoint points (100 = about 82% of the hitbox radius). Default 100.
----@field min_damage? number Minimum estimated damage of a point. Default 1.
----@field min_hitchance? number Minimum hit chance in percent (0-100). Default 0.
----@field trace_count? integer Any non-zero value (with min_hitchance > 0) enables the hit-chance check. Default 0.
+---@field records? BacktrackRecord[] Extra poses, used only when the current pose has no point (heroes only). Default none.
+---@field multipoint? integer `hitscan.MULTIPOINT_DISABLED` .. `hitscan.HIGH`: 0 / 2 / 4 / 6 ring points around each hitbox centre; any other value gives the centre only. Default 0.
+---@field point_scale? number Size of the multipoint ring (100 = 82% of the hitbox radius). Default 100.
+---@field min_damage? number Minimum damage of a point (equal passes). Default 1.
+---@field min_hitchance? number Minimum hit chance in percent. Hit chance is always 100, so only values above 100 reject. Default 0.
+---@field trace_count? integer Any non-zero value (with min_hitchance > 0) enables the min_hitchance check. Default 0.
 
 ---Result table of `hitscan.evaluate`.
 ---@class HitscanResult
 ---@field record BacktrackRecord|nil The record the point belongs to, or nil for the current pose.
 ---@field tick integer `record.tick`, or 0 for the current pose.
 ---@field aim_point Vector The world position to aim at.
----@field hitbox_index integer Index of the hitbox in the target's hitbox set.
+---@field hitbox_index integer Index of the hitbox in the target's hitbox set (as `BacktrackRecord:hitbox_pos` takes).
 ---@field hitgroup integer One of the `hitscan` hitgroup bits.
 ---@field fov number Angle in degrees between your camera direction and `aim_point`.
----@field damage number Estimated damage of one bullet at that point.
----@field hitchance number Estimated hit chance, 0 to 1 (1 when the check is off).
+---@field damage number Damage of one bullet on this pose with your bonuses and falloff (no headshot multiplier, no target resistances).
+---@field hitchance number Always 100.
 
 ---Finds the best point to shoot on a target.
 ---@class hitscan
 hitscan = {
-    ---Hitgroup bit: head.
+    ---Hitgroup bit: head and neck.
     HEAD = 1,
-    ---Hitgroup bit: chest (neck included).
+    ---Hitgroup bit: chest and upper spine.
     CHEST = 2,
-    ---Hitgroup bit: stomach.
+    ---Hitgroup bit: stomach, pelvis and lower spine.
     STOMACH = 4,
-    ---Hitgroup bit: arms.
+    ---Hitgroup bit: arms and hands.
     ARMS = 8,
-    ---Hitgroup bit: legs.
+    ---Hitgroup bit: legs and feet.
     LEGS = 0x10,
     ---Hitgroup bit: everything else.
     OTHER = 0x20,
     ---Multipoint: only the hitbox centre.
     MULTIPOINT_DISABLED = 0,
-    ---Multipoint: 1 extra sample per hitbox.
+    ---Multipoint: centre + 2 ring points per hitbox.
     MINIMUM = 1,
-    ---Multipoint: 2 extra samples per hitbox.
+    ---Multipoint: centre + 4 ring points per hitbox.
     MEDIUM = 2,
-    ---Multipoint: 3 extra samples per hitbox.
+    ---Multipoint: centre + 6 ring points per hitbox.
     HIGH = 3,
 }
 
----Traces from the camera to points on the target's hitboxes (current pose plus any records) and returns the best one, or nil and an error code.
+---Traces from the camera to points on the target's hitboxes and returns the reachable one closest to your crosshair (the current pose first, records only when it has none), or nil and an error code.
 ---@param params HitscanParams
 ---@return HitscanResult|nil result
 ---@return HitscanError|nil err
