@@ -10,7 +10,7 @@ Put any `.lua` file in:
 C:\VITTLOCK\scripts\v2\
 ```
 
-Subfolders are fine. Every `.lua` file in the folder is loaded when the game starts, after a map change, and when you press **Reload** in the menu's **Lua** tab.
+Subfolders are fine. Every `.lua` file in the folder is loaded when the game starts, and again when you press **Reload All** in the menu's **Lua** tab or the Reload Bind (F7). Scripts keep running across map and match changes.
 
 ## 2. Your first script
 

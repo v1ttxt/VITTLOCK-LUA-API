@@ -27,7 +27,7 @@ print("loaded " .. math.tointeger(store.runs) .. " times")
 The database is loaded from `C:\VITTLOCK\scripts\v2\db.json` once, when VITTLOCK starts. Changes are kept in memory and written to that file:
 
 - every 5 minutes, if anything changed,
-- before every full script reload (map change, reload from the menu),
+- before every full script reload (Reload All, the Reload Bind),
 - when the config is saved,
 - when VITTLOCK unloads.
 
@@ -115,7 +115,7 @@ if last then print("last position", last) end
 
 `global_ctx` is a string-keyed table shared by every script. It lives in memory only:
 
-- it is cleared on every full reload (map change, reload from the menu, game start),
+- it is cleared on every full reload (Reload All, the Reload Bind, game start),
 - it stays when a single script is reloaded,
 - it is never saved to disk.
 

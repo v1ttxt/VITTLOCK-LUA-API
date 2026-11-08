@@ -63,7 +63,7 @@ Every `Create` and every widget constructor is **find-or-create**: if a node wit
 - Names must be unique among the children of one parent, across all widget types. Creating a widget with the name of a sibling of another type turns that node into the new type (it loses its old value and callbacks).
 - `Label(text)` uses its text as the name, so two labels with the same text in one group are the same label. Use `ForceLocalization` to change a label's text later.
 - `Menu.Find(...)` and `node:Find(name)` only look up, never create. They see every node created by any script during this game session, including nodes from scripts that were unloaded.
-- When all scripts reload (map change, reload from the menu), only nodes created again by the new run are drawn. A removed script's page disappears; its saved values stay.
+- When all scripts reload (Reload All, the Reload Bind), only nodes created again by the new run are drawn. A removed script's page disappears; its saved values stay.
 - Reloading a single script removes its callbacks; its widgets stay and are returned again when the script re-runs.
 - Objects returned by the menu stay valid for the whole session; keeping them in upvalues across frames is safe. `==` compares two references to the same node, and `tostring(node)` gives its name.
 

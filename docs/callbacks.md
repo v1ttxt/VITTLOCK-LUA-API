@@ -458,7 +458,7 @@ All scripts share one global environment. A global set by one script is visible 
 
 ### Reloads
 
-A **full reload** happens when the game starts, after a map change, and when you reload all scripts from the menu. It:
+A **full reload** happens when the game starts, when you reload all scripts (the menu's **Reload All**, the Reload Bind, F7 by default) and when a script calls `utils.reload_scripts()`. A map or match change does not reload anything: scripts keep running, so reset your own per-match state (watch `entity_list.local_pawn()` or `on_add_entity`). It:
 - saves the [`db`](storage.md#db) and keeps it,
 - removes every handler of every script,
 - creates a fresh shared environment (every global is gone) and clears the `require` cache,
